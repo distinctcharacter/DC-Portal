@@ -1,0 +1,73 @@
+﻿
+### source-library\identity-operating-system\IOS1_Companion_Materials_Editorial_Revision_v0.2.docx
+17: [None] Copyright © 2025 Distinct Character. All Rights Reserved.
+61: [None] These are not required reading. They are research domains, clinical models, and theoretical frameworks that inform IOS-1. Practitioners with existing familiarity in these areas will recognize where the protocol applies established findings and where it uses a model as an organizing lens.
+68: [None] Low-capacity adaptations are included throughout. Within the Distinct Character framework, use the adaptation when your Somatic Anchor is below 5. If you notice shutdown, cognitive fog, flat affect, or reduced access to sustained cognitive output, pause the exercise and come back to it. These signals are pacing data, not a diagnosis.
+162: [None] Note: This is not performance rehearsal. The goal is familiarity with your own position, not scripted delivery. Practitioners who have never said their boundary aloud often discover, in the moment of pressure, that they do not have access to it.
+206: [None] This guide is designed for fatigue, overwhelm, cognitive load, and any moment when the full protocol is not accessible but governance still needs to operate. Use it as a fast-access practitioner support sheet.
+221: [List Paragraph] Classifying difficult identities as Sustaining Roles to avoid examining them. The Diagnostic Verification Protocol catches this, but only if you score honestly.
+244: [None] These are directions for practitioners who want to extend their understanding beyond what IOS-1 covers. None of these are required. They are offered as optional intellectual and developmental territory for practitioners who find the framework useful and want to understand its theoretical architecture more completely.
+265: [None] This path deepens the theoretical basis for the Diagnostic Verification Protocol in Module 2A.
+276: [None] Copyright © 2025 Distinct Character. All Rights Reserved.
+table 2, row 2, cell 1: Exercise 6.3 (Intersectional Pressure Mapping) is built on this framework. Without it, practitioners consistently underestimate structural masking load and attribute depletion to personal inadequacy.
+table 2, row 4, cell 1: During or after Module 6. Critical for practitioners operating under multiple structural pressures simultaneously.
+table 11, row 1, cell 1: For practitioners who want to go deeper on the Problem Externalization Protocol. Academic but accessible.
+table 13, row 1, cell 1: Accessible support for Module 4 work, particularly for practitioners new to the concept of narrative authorship.
+table 15, row 9, cell 1: Diagnostic verification protocol (Module 2A)
+table 22, row 2, cell 1: Performance mode has replaced diagnostic mode. The Diagnostic Verification Protocol exists for exactly this.
+table 26, row 1, cell 1: Original academic text. Dense but precise. Best for practitioners with clinical or research background.
+table 26, row 2, cell 1: Accessible workbook format. Strong on practical application of polyvagal concepts.
+table 27, row 2, cell 1: Advanced narrative therapy text. For practitioners interested in applying re-authoring frameworks beyond personal use.
+table 27, row 4, cell 1: Clinical application text. Useful if you are a practitioner who works with clients and wants to apply IOS-1 narrative tools in that context.
+table 30, row 1, cell 1: Original academic paper. The theoretical anchor for why the Diagnostic Verification Protocol exists.
+table 31, row 0, cell 0: Workbook
+
+### source-library\masking-economy-system\MES1_Companion_Materials_Editorial_Revision_v0.2.docx
+139: [None] Fast-access practitioner support. Designed for low-bandwidth, high-demand, or limited-energy states.
+224: [None] Additional learning directions for practitioners who want to extend their understanding beyond the protocol itself.
+229: [None] For practitioners who want a deeper understanding of the biological mechanisms underlying cost scoring, particularly the Physical Fatigue variable.
+242: [None] For practitioners who want to understand the social science foundations of the classification system and strategic masking framework.
+255: [None] For practitioners whose Mask Archaeology surfaces Externally Installed or Survival Installation masks with clear trauma origins. This path is relevant only if that archaeology produced significant material.
+269: [None] For practitioners who want to extend the budget and load calculation framework into a broader understanding of finite resource management and decision-making under depletion.
+281: [None] For practitioners whose masking economy is primarily structured around professional and institutional contexts. This path supports Functional and Protective mask governance in high-stakes professional environments.
+286: [List Paragraph] Code-switching research in sociolinguistics and organizational psychology: how practitioners navigate between identity registers across professional and personal contexts.
+296: [None] The Masking Economy System is a complete governance framework. These deepening paths are for practitioners who want the conceptual infrastructure behind the protocol, not just the protocol itself.
+306: [None] Copyright © 2025 Distinct Character. All Rights Reserved.
+table 1, row 3, cell 1: During or after Part I, if the practitioner is questioning whether strategic masking is legitimate.
+table 3, row 0, cell 1: Polyvagal-informed practice for practitioners: translating an influential clinical model into practical tools for state recognition and regulation while keeping the model's scientific limitations in view.
+table 3, row 3, cell 1: Before or during Part V. Particularly useful for practitioners who find personal signal identification difficult in Exercise 9.1.
+table 5, row 3, cell 1: When Archaeology work surfaces masks with relational or institutional trauma origins. Not required reading for all practitioners.
+table 6, row 2, cell 1: Background reading. Most useful before starting Part I if the practitioner has resistance to the framing of masking as legitimate strategy.
+table 8, row 2, cell 1: Selective reading only. Use when Mask Archaeology surfaces unresolved Survival Installation masks. Not required for practitioners without trauma-origin masks.
+table 9, row 2, cell 1: During or after Part II, particularly for practitioners with high-stakes professional masking contexts.
+table 10, row 2, cell 1: Only when explicitly relevant to the practitioner's Archaeology work. Not standard reading.
+table 12, row 2, cell 1: Supplement for practitioners who want the neuroscience behind the cost scoring variables.
+table 14, row 2, cell 1: Optional. Strong for practitioners who process well through narrative and conversation rather than technical reading.
+table 15, row 3, cell 1: MES-1 Stage 4 term for a possible shutdown pattern associated with overwhelm or sustained depletion. This is a polyvagal-informed framework signal, not a clinical diagnosis.
+table 15, row 5, cell 1: A trauma-informed formulation for appeasement-based behavior that may emerge when helpfulness, compliance, or self-suppression reduces perceived relational threat. It is not a diagnosis.
+table 15, row 9, cell 1: The MES-1 term for the practitioner's current embodied capacity baseline. It is a framework concept, not a clinical measurement.
+table 21, row 4, cell 1: Physical fatigue scoring is the variable most likely to be underestimated because practitioners habituate to it. The somatic check interrupts the habituation.
+table 21, row 5, cell 1: For practitioners managing chronic illness, this exercise is particularly high value. Fatigue masking (performing more capacity than is present) is a common secondary mask in chronic illness contexts and should be scored and budgeted explicitly.
+table 22, row 3, cell 1: For one week, track not just when you deploy a mask, but when it ends. Many practitioners underestimate average daily hours because they record deployment start but not exit. At week end, compare your tracked duration data to your initial estimates in the Load Calculation table. Adjust your module figures accordingly.
+table 22, row 4, cell 1: The load calculation depends on accurate duration data. Most practitioners carry masks longer than they consciously recognize, particularly Functional and Social Smoothing types that blur into ambient performance.
+table 27, row 4, cell 1: Budget violations are the primary data source for refining the economy. Most practitioners skip the debrief and lose the information. The debrief is how the budget becomes accurate over time.
+table 28, row 5, cell 1: For practitioners with energy-limiting conditions, this exercise may reveal that the current masking portfolio is architecturally incompatible with available capacity. If that is the case, Part IV's load reduction guidance applies before any other adjustment.
+table 29, row 4, cell 1: Signal mapping is only as useful as the practitioner's ability to detect the signals in real time. The log builds detection accuracy over time.
+table 30, row 4, cell 1: Retirement stalls most often at Phase 1 because the practitioner is unprepared for the relational response. Pre-scripting the response removes the in-context decision burden.
+
+### source-library\somatic-baseline\SBP_Companion_Materials_Editorial_Revision_v0.2.docx
+9: [None] Copyright 2025 Distinct Character
+39: [None] BOOKS / WORKBOOKS
+213: [None] If you want supplementary physiological data to compare with your SDI scores and Governance Log, Heart Rate Variability (HRV) tracking can provide one noninvasive signal. HRV is influenced by multiple factors, including respiration, sleep, physical conditioning, illness, medication, alcohol use, and measurement conditions. It is not a direct measure of psychological safety or a diagnosis. Wearables (Apple Watch, Garmin, Oura Ring) and apps (Welltory, Elite HRV) make repeated tracking accessible without clinical equipment. If you choose to track HRV, measure under similar conditions each morning before rising and compare the pattern with your zone assessments over time.
+217: [None] If you want a structured clinical-adjacent framework beyond the SBP, Deb Dana's "Anchored" workbook provides guided polyvagal-informed mapping exercises that complement the protocol. Polyvagal Theory is an influential clinical model with scientific limitations and ongoing debate. If your Distinct Character SDI score is above 25, if structural dysregulation is significant, or if practice produces persistent adverse responses, consider working with a licensed mental health professional or another appropriately qualified clinician. The SDI threshold is framework guidance, not a diagnosis.
+225: [None] If your Fawn Axis score was high and the Section VII Fawn Diagnostic surfaced significant patterns, Pete Walker's work on complex PTSD offers one clinical framework for understanding chronic fawn adaptations. His techniques for inner critic work and emotional flashback management may extend the fawn recovery work begun in Section VII. Use this material as psychoeducation, not as a substitute for assessment or treatment from a licensed mental health professional.
+243: [None] Copyright 2025 Distinct Character
+table 1, row 3, cell 1: Relevant if your Distinct Character SDI score is above 25 or if you encounter significant adverse responses during protocol use. This threshold is framework guidance, not a diagnosis.
+table 2, row 0, cell 1: Walker's clinical formulation describes the fawn response as an appeasement-based adaptation that may develop when compliance, caretaking, or self-suppression reduces relational threat. The formulation can support reflection. It is not a diagnosis and does not fully explain every pattern of affiliation or caregiving.
+table 2, row 1, cell 1: The Fawn Axis on the SDI and the Fawn Diagnostic in Section VII are directly connected to Walker's clinical framework for understanding chronic compliance.
+table 2, row 2, cell 1: Section II (Gendered Survival Loop), Section VII (Fawn Diagnostic), SDI Fawn Axis.
+table 2, row 3, cell 1: Engage if your Fawn Axis score is 8 or above, or after completing the Fawn Diagnostic prompts in Section VII.
+table 9, row 2, cell 1: Section II (Gendered Survival Loop), SDI Fawn Axis, Section VII (Fawn Diagnostic).
+table 14, row 1, cell 1: Stop. Use Protocol 3 (Sensory Anchoring) to re-establish present-moment grounding. If it persists, close the workbook entirely.
+table 21, row 0, cell 1: Extends Section VII (Fawn Diagnostic) and the Somatic History prompts.
+table 23, row 1, cell 1: Phase 2 requires a stable somatic baseline. Within the Distinct Character framework, an SDI exit score above 20 indicates that continued Phase 1 practice may be appropriate before transitioning. This threshold is progression guidance, not a diagnosis.

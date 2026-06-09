@@ -1,0 +1,102 @@
+﻿{
+  "docx": [
+    {
+      "path": "source-library\\narrative-control-system\\editable-intake\\NCS-1_Narrative_Control_System.docx",
+      "bytes": 624583,
+      "zip_integrity": "PASS",
+      "paragraphs": 623,
+      "nonempty_paragraphs": 349,
+      "tables": 150,
+      "sections": 5,
+      "page_breaks": 5,
+      "characters": 71879,
+      "first_nonempty_paragraphs": [
+        "THE SOVEREIGN BUREAU",
+        "A. Solenne Institute  |  Granite Field Holdings Ltd. Co.",
+        "Narrative Control System: NCS-1",
+        "The Architecture of Sovereign Interpretation",
+        "Copyright © 2025 Distinct Character. All Rights Reserved.",
+        "A. Solenne Institute  ·  A division of Granite Field Holdings Ltd. Co.",
+        "Published by The Sovereign Bureau,",
+        "the canonical framework archive and intellectual property registry",
+        "of Granite Field Holdings Ltd. Co.",
+        "Series: Distinct Character Self-Mastery Series",
+        "Classification: Cognitive Governance and Interpretation Architecture",
+        "Codex Position: Tier I  |  Identity and Stability Layer  |  NCS-1",
+        "Prerequisites: Identity Operating System (IOS-1)  |  Masking Economy System (MES-1)",
+        "All content in this workbook, including frameworks, terminology, diagnostic exercises, audit matrices, override scripts, and structural architecture, is the original intellectual property of Azari Solenne and Granite Field Holdings Ltd. Co. No part of this publication may be reproduced, distributed, transmitted, stored in a retrieval system, or used in any form without prior written consent from the publisher.",
+        "This material is intended for personal educational and developmental use only.",
+        "It does not constitute medical, psychiatric, or clinical advice.",
+        "If you are experiencing a health crisis, please consult a licensed professional.",
+        "For licensing, institutional use, or permissions:",
+        "inquiries@thesovereignbureau.com",
+        "First Edition  ·  2025",
+        "Printed and distributed under the authority of The Sovereign Bureau",
+        "The Sovereign Bureau  |  A. Solenne Institute  |  A division of Granite Field Holdings Ltd. Co.",
+        "[ LETTER FROM AZARI SOLENNE ]",
+        "Distinct Character",
+        "[ Placeholder: Insert personal letter here ]",
+        "TABLE OF CONTENTS",
+        "Front Matter",
+        "Letter from Azari Solenne3",
+        "Orientation5",
+        "How to Use This Workbook5"
+      ]
+    },
+    {
+      "path": "source-library\\foundation\\editable-intake\\DC_Biological_Infrastructure_Companion.docx",
+      "bytes": 35868,
+      "zip_integrity": "PASS",
+      "paragraphs": 315,
+      "nonempty_paragraphs": 313,
+      "tables": 1,
+      "sections": 1,
+      "page_breaks": 0,
+      "characters": 32649,
+      "first_nonempty_paragraphs": [
+        "DISTINCT CHARACTER · A. SOLENNE INSTITUTE",
+        "The Distinct Character Self-Mastery Series",
+        "Biological",
+        "Infrastructure",
+        "The Self-Mastery Architecture for Body, Energy, and Nervous System Governance",
+        "A companion resource for all Distinct Character products. For use as a standalone reference, course supplement, or diagnostic tool.",
+        "Developed by A. Solenne Institute",
+        "Research Division · Granite Field Holdings Ltd. Co.",
+        "The Sovereign Bureau · A. Solenne Institute · A division of Granite Field Holdings Ltd. Co.",
+        "Biological Infrastructure",
+        "The Self-Mastery Architecture for Body, Energy, and Nervous System Governance",
+        "Copyright © 2026 Distinct Character. All Rights Reserved.",
+        "A. Solenne Institute · A division of Granite Field Holdings Ltd. Co.",
+        "Published by The Sovereign Bureau, the canonical framework archive",
+        "and intellectual property registry of Granite Field Holdings Ltd. Co.",
+        "All content in this document, including frameworks, terminology, glossary definitions,",
+        "diagnostic prompts, and structural architecture, is the original intellectual property",
+        "of Azari Solenne and Granite Field Holdings Ltd. Co.",
+        "No part of this publication may be reproduced, distributed, transmitted,",
+        "stored in a retrieval system, or used in any form without prior written",
+        "consent from the publisher.",
+        "This material is intended for personal educational and developmental use only.",
+        "It does not constitute medical, psychiatric, or clinical advice.",
+        "If you are experiencing a health crisis, please consult a licensed professional.",
+        "For licensing, institutional use, or permissions: contact@asolenneinstitute.com",
+        "First Edition · 2026",
+        "Printed and distributed under the authority of The Sovereign Bureau.",
+        "This companion is part of the Distinct Character Self-Mastery Series, developed to provide precise, architecture-based tools for women building governed, sustainable lives.",
+        "The Sovereign Bureau · A. Solenne Institute · A division of Granite Field Holdings Ltd. Co.",
+        "Distinct Character 3 Biological Infrastructure Companion"
+      ]
+    }
+  ],
+  "pdf": [
+    {
+      "path": "source-library\\narrative-control-system\\NCS-1_Companion_Materials.pdf",
+      "pages": 24,
+      "characters": 44008
+    },
+    {
+      "path": "source-library\\foundation\\DC_Biological_Infrastructure_Companion.pdf",
+      "pages": 22,
+      "characters": 32632
+    }
+  ]
+}

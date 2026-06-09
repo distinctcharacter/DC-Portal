@@ -1,0 +1,199 @@
+﻿[
+  {
+    "name": "SBP companion v0.3",
+    "path": "source-library\\somatic-baseline\\SBP_Companion_Materials_Aligned_Revision_v0.3.docx",
+    "structure": {
+      "paragraphs": 243,
+      "tables": 24,
+      "table_cells": 223
+    },
+    "characters": 30873,
+    "counts": {
+      "em_dash": 0,
+      "en_dash": 0,
+      "workbook": 2,
+      "practitioner": 0,
+      "participant": 0,
+      "client": 0,
+      "user": 7,
+      "copyright": 2,
+      "diagnosis": 11,
+      "treatment": 5,
+      "licensed": 2,
+      "crisis": 3
+    },
+    "copyright_lines": [
+      "Copyright 2025 Distinct Character",
+      "Copyright 2025 Distinct Character"
+    ],
+    "practitioner_contexts": [],
+    "workbook_contexts": [
+      "e Processing and Body Budgeting BOOKS / PODCAST 05 · VAGAL TONE Deb Dana: Polyvagal-Informed Practice BOOKS / WORKBOOKS 06 · CHRONIC STRESS AND BIOLOGY Robert Sapolsky: Stress Physiology BOOKS / LECTURES 07 · NERVOUS SYSTEM AND I",
+      "yvagal Application If you want a structured clinical-adjacent framework beyond the SBP, Deb Dana's \"Anchored\" workbook provides guided polyvagal-informed mapping exercises that complement the protocol. Polyvagal Theory is an inf"
+    ]
+  },
+  {
+    "name": "IOS-1 companion v0.3",
+    "path": "source-library\\identity-operating-system\\IOS1_Companion_Materials_Aligned_Revision_v0.3.docx",
+    "structure": {
+      "paragraphs": 276,
+      "tables": 32,
+      "table_cells": 308
+    },
+    "characters": 34420,
+    "counts": {
+      "em_dash": 0,
+      "en_dash": 0,
+      "workbook": 0,
+      "practitioner": 1,
+      "participant": 11,
+      "client": 1,
+      "user": 0,
+      "copyright": 4,
+      "diagnosis": 7,
+      "treatment": 6,
+      "licensed": 0,
+      "crisis": 0
+    },
+    "copyright_lines": [
+      "Copyright © 2025 Distinct Character. All Rights Reserved.",
+      "Copyright © 2025 Distinct Character. All Rights Reserved."
+    ],
+    "practitioner_contexts": [
+      "ocial Construction of Preferred Realities (Freedman and Combs) Clinical application text. Useful if you are a practitioner who works with clients and wants to apply IOS-1 narrative tools in that context. Resource Angle Mapping the M"
+    ],
+    "workbook_contexts": []
+  },
+  {
+    "name": "MES-1 companion v0.3",
+    "path": "source-library\\masking-economy-system\\MES1_Companion_Materials_Aligned_Revision_v0.3.docx",
+    "structure": {
+      "paragraphs": 305,
+      "tables": 38,
+      "table_cells": 355
+    },
+    "characters": 39746,
+    "counts": {
+      "em_dash": 0,
+      "en_dash": 0,
+      "workbook": 0,
+      "practitioner": 0,
+      "participant": 28,
+      "client": 0,
+      "user": 1,
+      "copyright": 2,
+      "diagnosis": 2,
+      "treatment": 6,
+      "licensed": 1,
+      "crisis": 0
+    },
+    "copyright_lines": [
+      "Copyright © 2025 Distinct Character. All Rights Reserved."
+    ],
+    "practitioner_contexts": [],
+    "workbook_contexts": []
+  },
+  {
+    "name": "NCS-1 companion PDF",
+    "path": "source-library\\narrative-control-system\\NCS-1_Companion_Materials.pdf",
+    "structure": {
+      "pages": 24
+    },
+    "characters": 44031,
+    "counts": {
+      "em_dash": 0,
+      "en_dash": 0,
+      "workbook": 12,
+      "practitioner": 6,
+      "participant": 0,
+      "client": 0,
+      "user": 1,
+      "copyright": 4,
+      "diagnosis": 0,
+      "treatment": 8,
+      "licensed": 3,
+      "crisis": 1
+    },
+    "copyright_lines": [
+      "Copyright © 2025 Distinct Character. All Rights Reserved.",
+      "Copyright © 2025 Distinct Character. All Rights Reserved."
+    ],
+    "practitioner_contexts": [
+      "ules supported: Module 3: The Seven Distortion Types. Module 4: The Narrative Audit Matrix. When to read: For practitioners who want to understand the academic basis of the distortion taxonomy before working through the personal dist",
+      "tity. Modules supported: Introduction: The Author Problem. Module 2: Narrative Archaeology. When to read: For practitioners who want deeper philosophical grounding in why narrative construction is a fundamental cognitive operation. R",
+      "le 9 pressure preparation. The Polyvagal Podcast Host: Deb Dana Practical application of Polyvagal Theory for practitioners and clinicians. Episodes address state identification, co-regulation, and the relationship between nervous sy",
+      "Being Well Podcast Host: Rick and Forrest Hanson Neuroscience-informed psychology accessible to non-clinical practitioners. Episodes on cognitive schemas, self-compassion as a structural tool, and the neuroscience of self-concept. R",
+      "division of Granite Field Holdings Ltd. Co. 21 SECTION FOUR Optional Deepening Paths These are directions for practitioners who have completed the core workbook and want to extend their understanding of the systems underlying the Nar",
+      "ce The identity standards work in Module 8 and the pressure protocols in Module 9 have specific relevance for practitioners managing chronic illness. This path provides additional frameworks for understanding the relationship between"
+    ],
+    "workbook_contexts": [
+      "ehind a protocol you are already practicing. Do not treat this as a reading list to complete before using the workbook. The workbook is the primary tool. These resources are support. RESEARCHERS AND THINKERS Stephen Porges POLYV",
+      "ol you are already practicing. Do not treat this as a reading list to complete before using the workbook. The workbook is the primary tool. These resources are support. RESEARCHERS AND THINKERS Stephen Porges POLYVAGAL THEORY /",
+      "ction: The Author Problem. Module 1: Surface the Operative Narrative. When to engage: At the beginning of the workbook, if you encounter resistance to the premise that interpretation is constructed rather than received. Bessel v",
+      "Integration Exercises These exercises extend the protocol into daily life. They are not replacements for the workbook exercises. They are operational companions: tools for embedding the Narrative Control System into actual inte",
+      "ve questions. This replaces the four-week structured audit with a standing protocol that does not require the workbook to be open. Reflection prompts:  What event this week generated the strongest automatic interpretation? ",
+      "gned for high-fatigue, high-load, or cognitively overloaded states. This section does not require reading the workbook. It is the portable version of the protocol. CORE DISTINCTIONS Identity level vs. condition level Identity-le",
+      "ds directly on the Narrative Filter Audit from IOS-1 Module 4 and the identity architecture installed in that workbook. Partial prerequisites produce partial results. Using the Biographical Disruption Integration protocol on eve",
+      ". 21 SECTION FOUR Optional Deepening Paths These are directions for practitioners who have completed the core workbook and want to extend their understanding of the systems underlying the Narrative Control System. None of these"
+    ]
+  },
+  {
+    "name": "Biological Infrastructure PDF",
+    "path": "source-library\\foundation\\DC_Biological_Infrastructure_Companion.pdf",
+    "structure": {
+      "pages": 22
+    },
+    "characters": 32653,
+    "counts": {
+      "em_dash": 0,
+      "en_dash": 23,
+      "workbook": 0,
+      "practitioner": 3,
+      "participant": 0,
+      "client": 0,
+      "user": 0,
+      "copyright": 4,
+      "diagnosis": 9,
+      "treatment": 4,
+      "licensed": 1,
+      "crisis": 3
+    },
+    "copyright_lines": [
+      "Copyright © 2026 Distinct Character. All Rights Reserved.",
+      "Distinct Character · Copyright © 2026 · All Rights Reserved"
+    ],
+    "practitioner_contexts": [
+      "The Depletion and Recovery Map VIII. Advanced Diagnostic Journal Prompts IX. The 30-Day Baseline Protocol X. Practitioner Notes and Framework Context The Sovereign Bureau · A. Solenne Institute · A division of Granite Field H",
+      "· A division of Granite Field Holdings Ltd. Co. Distinct Character Biological Infrastructure Companion 21 X. Practitioner Notes and Framework Context This section provides the theoretical and methodological grounding for the framew",
+      "he theoretical and methodological grounding for the framework presented in this companion. It is intended for practitioners, advanced students, and those integrating this material with existing professional knowledge. Theoretical Lin"
+    ],
+    "workbook_contexts": []
+  },
+  {
+    "name": "12 Dimensions Wellness PDF",
+    "path": "source-library\\foundation\\12-dimensions-wellness.pdf",
+    "structure": {
+      "pages": 1
+    },
+    "characters": 2849,
+    "counts": {
+      "em_dash": 0,
+      "en_dash": 0,
+      "workbook": 0,
+      "practitioner": 0,
+      "participant": 0,
+      "client": 0,
+      "user": 0,
+      "copyright": 1,
+      "diagnosis": 0,
+      "treatment": 0,
+      "licensed": 0,
+      "crisis": 0
+    },
+    "copyright_lines": [
+      "Distinct Character © 2026  ·  A. Solenne Institute  ·  The Sovereign Bureau  ·  A division of Granite Field Holdings Ltd. Co."
+    ],
+    "practitioner_contexts": [],
+    "workbook_contexts": []
+  }
+]
