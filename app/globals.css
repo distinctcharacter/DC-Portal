@@ -390,6 +390,25 @@ main {
   color: var(--black);
 }
 
+.auth-secondary-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.auth-secondary-actions button {
+  border: 0;
+  background: transparent;
+  color: var(--gold);
+  cursor: pointer;
+  font-weight: 700;
+  padding: 6px;
+}
+
+.auth-secondary-actions button:hover {
+  color: var(--gold-2);
+}
+
 .auth-message,
 .auth-error,
 .auth-note {

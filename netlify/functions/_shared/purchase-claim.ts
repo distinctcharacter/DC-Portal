@@ -19,6 +19,10 @@ type MappingRow = {
   grant_child_protocols: boolean;
 };
 
+type BundleChildRow = {
+  child_protocol_id: string;
+};
+
 type ClaimResult = {
   claimedCount: number;
   claimed: string[];
@@ -83,15 +87,24 @@ async function ensureRole(admin: DatabaseClient, userId: string, role: string | 
 }
 
 async function hasExistingEntitlement(admin: DatabaseClient, userId: string, mapping: MappingRow) {
+  return hasExistingEntitlementFor(admin, userId, mapping.entitlement_type, mapping.protocol_id);
+}
+
+async function hasExistingEntitlementFor(
+  admin: DatabaseClient,
+  userId: string,
+  entitlementType: string,
+  protocolId: string | null
+) {
   let query = admin
     .from("protocol_entitlements")
     .select("id")
     .eq("user_id", userId)
-    .eq("entitlement_type", mapping.entitlement_type)
+    .eq("entitlement_type", entitlementType)
     .in("status", ["active", "pending"])
     .limit(1);
 
-  query = mapping.protocol_id ? query.eq("protocol_id", mapping.protocol_id) : query.is("protocol_id", null);
+  query = protocolId ? query.eq("protocol_id", protocolId) : query.is("protocol_id", null);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -120,6 +133,51 @@ async function ensureEntitlement(
   });
 
   if (error && error.code !== "23505") throw error;
+}
+
+async function ensureProtocolEntitlement(
+  admin: DatabaseClient,
+  userId: string,
+  purchaseId: string,
+  protocolId: string,
+  expiresAt: string | null
+) {
+  const exists = await hasExistingEntitlementFor(admin, userId, "protocol", protocolId);
+  if (exists) return;
+
+  const { error } = await admin.from("protocol_entitlements").insert({
+    user_id: userId,
+    entitlement_type: "protocol",
+    protocol_id: protocolId,
+    purchase_id: purchaseId,
+    source: "stripe_payment_link",
+    status: "active",
+    expires_at: expiresAt
+  });
+
+  if (error && error.code !== "23505") throw error;
+}
+
+async function ensureBundleChildEntitlements(
+  admin: DatabaseClient,
+  userId: string,
+  purchaseId: string,
+  mapping: MappingRow
+) {
+  if (!mapping.grant_child_protocols || !mapping.protocol_id) return;
+
+  const { data, error } = await admin
+    .from("bundle_protocols")
+    .select("child_protocol_id")
+    .eq("bundle_protocol_id", mapping.protocol_id);
+
+  if (error) throw error;
+
+  const expiresAt = mapping.access_duration_days ? addDays(new Date(), mapping.access_duration_days) : null;
+
+  for (const child of (data ?? []) as BundleChildRow[]) {
+    await ensureProtocolEntitlement(admin, userId, purchaseId, child.child_protocol_id, expiresAt);
+  }
 }
 
 async function markPurchaseClaimed(admin: DatabaseClient, purchaseId: string, userId: string) {
@@ -200,6 +258,7 @@ export async function claimPurchasesForUser(admin: DatabaseClient, user: User): 
 
     await ensureRole(admin, user.id, mapping.role_granted);
     await ensureEntitlement(admin, user.id, purchase.id, mapping);
+    await ensureBundleChildEntitlements(admin, user.id, purchase.id, mapping);
     await markPurchaseClaimed(admin, purchase.id, user.id);
 
     result.claimedCount += 1;
@@ -208,4 +267,3 @@ export async function claimPurchasesForUser(admin: DatabaseClient, user: User): 
 
   return result;
 }
-

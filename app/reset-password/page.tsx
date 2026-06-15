@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { AuthPanel } from "@/components/AuthPanel";
+import { ResetPasswordPanel } from "@/components/ResetPasswordPanel";
 
-export default function LoginPage() {
+export default function ResetPasswordPage() {
   return (
     <main className="auth-page">
       <section className="auth-hero">
@@ -14,15 +14,15 @@ export default function LoginPage() {
             <small>Protocol Portal</small>
           </span>
         </Link>
-        <span className="eyebrow">Portal Authentication</span>
-        <h1>Portal Access</h1>
+        <span className="eyebrow">Portal Recovery</span>
+        <h1>Reset Password</h1>
         <p>
-          Sign in with a magic link or password. Use the same email address used at checkout so
-          the portal can match recorded purchases to protocol access.
+          Set a new password for the verified email connected to your portal account. After the
+          password is updated, the portal will sync profile and purchase access.
         </p>
       </section>
 
-      <AuthPanel />
+      <ResetPasswordPanel />
     </main>
   );
 }

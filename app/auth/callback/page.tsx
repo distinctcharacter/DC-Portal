@@ -89,7 +89,7 @@ export default function AuthCallbackPage() {
             <small>Protocol Portal</small>
           </span>
         </Link>
-        <span className="eyebrow">DEV Authentication</span>
+        <span className="eyebrow">Portal Authentication</span>
         <h1>Authentication Check</h1>
         <p>{status}</p>
         <Link className="button" href="/">

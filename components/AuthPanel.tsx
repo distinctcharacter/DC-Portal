@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 
-type AuthMode = "login" | "signup" | "magic";
+type AuthMode = "login" | "signup" | "magic" | "reset";
 
 type AuthPanelProps = {
   context?: "login" | "claim";
@@ -44,6 +44,16 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
         return;
       }
 
+      if (mode === "reset") {
+        const { error: authError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: `${window.location.origin}/reset-password`
+        });
+
+        if (authError) throw authError;
+        setMessage("Password reset email sent. Open the newest email and set your password inside the portal.");
+        return;
+      }
+
       if (!password) {
         setError("Enter your password.");
         return;
@@ -69,7 +79,8 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
       });
 
       if (authError) throw authError;
-      setMessage("Login successful. You can return to the portal dashboard.");
+      setMessage("Login successful. Syncing portal access.");
+      window.location.assign("/auth/callback");
     } catch (authError) {
       const description = authError instanceof Error ? authError.message : "Authentication failed.";
       setError(description);
@@ -116,7 +127,7 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
           />
         </label>
 
-        {mode !== "magic" ? (
+        {mode !== "magic" && mode !== "reset" ? (
           <label>
             Password
             <input
@@ -130,9 +141,29 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
         ) : null}
 
         <button className="button" type="submit" disabled={pending}>
-          {pending ? "Processing" : mode === "magic" ? "Send magic link" : mode === "signup" ? "Create account" : "Login"}
+          {pending
+            ? "Processing"
+            : mode === "magic"
+              ? "Send magic link"
+              : mode === "signup"
+                ? "Create account"
+                : mode === "reset"
+                  ? "Send password reset"
+                  : "Login"}
         </button>
       </form>
+
+      <div className="auth-secondary-actions">
+        {mode === "login" ? (
+          <button type="button" onClick={() => setMode("reset")}>
+            Reset password
+          </button>
+        ) : mode === "reset" ? (
+          <button type="button" onClick={() => setMode("login")}>
+            Return to password login
+          </button>
+        ) : null}
+      </div>
 
       {message ? <p className="auth-message">{message}</p> : null}
       {error ? <p className="auth-error">{error}</p> : null}
