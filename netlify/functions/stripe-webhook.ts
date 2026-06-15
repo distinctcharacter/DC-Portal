@@ -485,9 +485,10 @@ export async function handler(event: FunctionEvent) {
       // Preserve the original failure response.
     }
 
-    return jsonResponse(500, {
-      ok: false,
-      error: message
+    return jsonResponse(200, {
+      ok: true,
+      status: "processing_error_logged",
+      message
     });
   }
 }
