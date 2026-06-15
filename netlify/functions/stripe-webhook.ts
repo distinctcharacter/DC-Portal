@@ -53,6 +53,14 @@ type MappingRow = {
   product_display_name: string | null;
   entitlement_type: string;
   protocol_id: string | null;
+  mapping_metadata?: Record<string, unknown> | null;
+};
+
+type WebhookFailureContext = {
+  stage: string;
+  stripeEventId?: string;
+  stripeEventType?: string;
+  checkoutSessionId?: string;
 };
 
 function jsonResponse(statusCode: number, body: unknown) {
@@ -63,6 +71,27 @@ function jsonResponse(statusCode: number, body: unknown) {
     },
     body: JSON.stringify(body)
   };
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Unknown webhook processing error.";
+}
+
+class StripeLineItemLookupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StripeLineItemLookupError";
+  }
+}
+
+function logWebhookError(context: WebhookFailureContext, error: unknown) {
+  console.error(
+    "stripe-webhook failure",
+    JSON.stringify({
+      ...context,
+      message: getErrorMessage(error)
+    })
+  );
 }
 
 function getHeader(headers: Record<string, string | undefined>, name: string) {
@@ -129,6 +158,12 @@ function normalizeEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
 }
 
+function getPaymentLinkId(value: string | null | undefined) {
+  if (!value) return null;
+  const match = value.match(/plink_[A-Za-z0-9]+/);
+  return match?.[0] ?? value;
+}
+
 function getProductId(lineItem: StripeLineItem) {
   const product = lineItem.price?.product;
 
@@ -154,7 +189,7 @@ async function fetchStripeLineItems(sessionId: string) {
 
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`Stripe line item lookup failed: ${response.status} ${body}`);
+    throw new StripeLineItemLookupError(`Stripe line item lookup failed: ${response.status} ${body}`);
   }
 
   return (await response.json()) as StripeLineItemsResponse;
@@ -168,7 +203,7 @@ async function findMapping(admin: ReturnType<typeof getSupabaseAdmin>, lineItems
     if (priceId) {
       const { data, error } = await admin
         .from("stripe_product_mappings")
-        .select("stripe_product_id, stripe_price_id, internal_product_key, product_display_name, entitlement_type, protocol_id")
+        .select("stripe_product_id, stripe_price_id, internal_product_key, product_display_name, entitlement_type, protocol_id, mapping_metadata")
         .eq("stripe_price_id", priceId)
         .eq("active", true)
         .maybeSingle();
@@ -180,7 +215,7 @@ async function findMapping(admin: ReturnType<typeof getSupabaseAdmin>, lineItems
     if (productId) {
       const { data, error } = await admin
         .from("stripe_product_mappings")
-        .select("stripe_product_id, stripe_price_id, internal_product_key, product_display_name, entitlement_type, protocol_id")
+        .select("stripe_product_id, stripe_price_id, internal_product_key, product_display_name, entitlement_type, protocol_id, mapping_metadata")
         .eq("stripe_product_id", productId)
         .eq("active", true)
         .maybeSingle();
@@ -191,6 +226,26 @@ async function findMapping(admin: ReturnType<typeof getSupabaseAdmin>, lineItems
   }
 
   return null;
+}
+
+async function findMappingByPaymentLink(admin: ReturnType<typeof getSupabaseAdmin>, paymentLinkId: string | null) {
+  if (!paymentLinkId) return null;
+
+  const { data, error } = await admin
+    .from("stripe_product_mappings")
+    .select("stripe_product_id, stripe_price_id, internal_product_key, product_display_name, entitlement_type, protocol_id, mapping_metadata")
+    .eq("active", true);
+
+  if (error) throw error;
+
+  const mapping = (data ?? []).find((row) => {
+    const metadata = row.mapping_metadata as Record<string, unknown> | null;
+    const storedId = getPaymentLinkId(typeof metadata?.stripe_payment_link_id === "string" ? metadata.stripe_payment_link_id : null);
+    const storedUrlId = getPaymentLinkId(typeof metadata?.payment_link === "string" ? metadata.payment_link : null);
+    return storedId === paymentLinkId || storedUrlId === paymentLinkId;
+  });
+
+  return mapping ? { mapping: mapping as MappingRow, priceId: mapping.stripe_price_id, productId: mapping.stripe_product_id } : null;
 }
 
 async function updateWebhookStatus(
@@ -295,9 +350,10 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(405, { error: "Method not allowed." });
   }
 
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
 
   if (!webhookSecret) {
+    logWebhookError({ stage: "environment" }, new Error("Missing STRIPE_WEBHOOK_SECRET."));
     return jsonResponse(500, { error: "Missing STRIPE_WEBHOOK_SECRET." });
   }
 
@@ -316,9 +372,8 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(400, { error: "Invalid Stripe event payload." });
   }
 
-  const admin = getSupabaseAdmin();
-
   try {
+    const admin = getSupabaseAdmin();
     const receiptStatus = await recordWebhookReceived(admin, stripeEvent);
 
     if (receiptStatus === "already_processed") {
@@ -342,12 +397,46 @@ export async function handler(event: FunctionEvent) {
       return jsonResponse(200, { ok: true, status: "ignored" });
     }
 
-    const lineItems = await fetchStripeLineItems(session.id);
-    const match = await findMapping(admin, lineItems.data);
+    let match = await findMappingByPaymentLink(admin, getPaymentLinkId(session.payment_link));
+
+    if (!match) {
+      let lineItems: StripeLineItemsResponse;
+
+      try {
+        lineItems = await fetchStripeLineItems(session.id);
+      } catch (lineItemError) {
+        if (lineItemError instanceof StripeLineItemLookupError) {
+          logWebhookError(
+            {
+              stage: "stripe_line_item_lookup",
+              stripeEventId: stripeEvent.id,
+              stripeEventType: stripeEvent.type,
+              checkoutSessionId: session.id
+            },
+            lineItemError
+          );
+          await updateWebhookStatus(admin, stripeEvent.id, "failed");
+          return jsonResponse(200, {
+            ok: true,
+            status: "stripe_line_item_lookup_failed",
+            message:
+              "Webhook received, but Stripe line-item lookup failed. Check that STRIPE_SECRET_KEY belongs to the same Stripe mode as this webhook."
+          });
+        }
+
+        throw lineItemError;
+      }
+
+      match = await findMapping(admin, lineItems.data);
+    }
 
     if (!match) {
       await updateWebhookStatus(admin, stripeEvent.id, "failed");
-      return jsonResponse(200, { ok: false, status: "failed", error: "No active mapping found." });
+      return jsonResponse(200, {
+        ok: true,
+        status: "unmapped_product",
+        message: "Webhook received, but this Stripe test product is not mapped to a portal product."
+      });
     }
 
     const purchaseId = await recordPurchase(
@@ -368,11 +457,31 @@ export async function handler(event: FunctionEvent) {
       internalProductKey: match.mapping.internal_product_key
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Stripe webhook processing failed.";
+    const message = getErrorMessage(error);
+
+    logWebhookError(
+      {
+        stage: "processing",
+        stripeEventId: stripeEvent.id,
+        stripeEventType: stripeEvent.type,
+        checkoutSessionId: stripeEvent.data.object.id
+      },
+      error
+    );
 
     try {
+      const admin = getSupabaseAdmin();
       await updateWebhookStatus(admin, stripeEvent.id, "failed");
-    } catch {
+    } catch (statusError) {
+      logWebhookError(
+        {
+          stage: "status_update_failed",
+          stripeEventId: stripeEvent.id,
+          stripeEventType: stripeEvent.type,
+          checkoutSessionId: stripeEvent.data.object.id
+        },
+        statusError
+      );
       // Preserve the original failure response.
     }
 
