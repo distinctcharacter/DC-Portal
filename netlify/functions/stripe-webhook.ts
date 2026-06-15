@@ -27,6 +27,7 @@ type CheckoutSession = {
     email?: string | null;
   } | null;
   invoice?: string | null;
+  livemode?: boolean;
   metadata?: Record<string, string> | null;
   mode?: string | null;
   payment_intent?: string | null;
@@ -248,6 +249,20 @@ async function findMappingByPaymentLink(admin: ReturnType<typeof getSupabaseAdmi
   return mapping ? { mapping: mapping as MappingRow, priceId: mapping.stripe_price_id, productId: mapping.stripe_product_id } : null;
 }
 
+async function findSandboxFallbackMapping(admin: ReturnType<typeof getSupabaseAdmin>) {
+  const { data, error } = await admin
+    .from("stripe_product_mappings")
+    .select("stripe_product_id, stripe_price_id, internal_product_key, product_display_name, entitlement_type, protocol_id, mapping_metadata")
+    .eq("internal_product_key", "protocol_somatic_baseline")
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data
+    ? { mapping: data as MappingRow, priceId: data.stripe_price_id, productId: data.stripe_product_id }
+    : null;
+}
+
 async function updateWebhookStatus(
   admin: ReturnType<typeof getSupabaseAdmin>,
   providerEventId: string,
@@ -428,6 +443,23 @@ export async function handler(event: FunctionEvent) {
       }
 
       match = await findMapping(admin, lineItems.data);
+    }
+
+    if (!match) {
+      if (session.livemode === false) {
+        match = await findSandboxFallbackMapping(admin);
+      }
+
+      if (match) {
+        console.info(
+          "stripe-webhook sandbox fallback mapping",
+          JSON.stringify({
+            stripeEventId: stripeEvent.id,
+            checkoutSessionId: session.id,
+            internalProductKey: match.mapping.internal_product_key
+          })
+        );
+      }
     }
 
     if (!match) {
