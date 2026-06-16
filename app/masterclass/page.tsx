@@ -8,15 +8,15 @@ export default function MasterclassPage() {
         <SectionHeader
           eyebrow="Expansion Layer"
           title="Masterclass Series"
-          copy="Future purchasable education lives outside the core protocol ladder. This preserves the seriousness of the sequential system while leaving room for advanced trainings and educational expansion."
+          copy="Advanced education lives outside the core protocol ladder. This preserves the seriousness of the sequential system while allowing space for applied trainings and educational expansion."
         />
         <article className="placeholder-panel masterclass-panel">
-          <span className="eyebrow">Future Offering Layer</span>
+          <span className="eyebrow">Expansion Offering Layer</span>
           <h2>Advanced Application Series</h2>
           <p>
-            This area is reserved for future masterclasses, expansion trainings, and purchasable
-            educational offerings. It is intentionally separated from the core protocol progression
-            so the operating system remains structured, gated, and clinically adjacent.
+            This area houses masterclasses, expansion trainings, and advanced educational
+            offerings. It is intentionally separated from the core protocol progression so the
+            operating system remains structured, gated, and clinically adjacent.
           </p>
           <div className="lock-grid">
             <div>
@@ -25,7 +25,7 @@ export default function MasterclassPage() {
             </div>
             <div>
               <strong>Purchase Model</strong>
-              <span>Future standalone access or bundle entitlement.</span>
+              <span>Standalone access or bundled education access.</span>
             </div>
             <div>
               <strong>Licensing Space</strong>
@@ -33,7 +33,7 @@ export default function MasterclassPage() {
             </div>
           </div>
           <button className="button secondary" type="button" disabled>
-            Future Access
+            Access Locked
           </button>
         </article>
       </section>

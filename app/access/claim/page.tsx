@@ -15,11 +15,11 @@ export default function ClaimAccessPage() {
             <small>Protocol Portal</small>
           </span>
         </Link>
-        <span className="eyebrow">Access Claim Preparation</span>
+        <span className="eyebrow">Purchase Access</span>
         <h1>Claim Portal Access</h1>
         <p>
-          This page prepares the future post-purchase flow. Use the same email used at checkout.
-          If your payment has been recorded, the portal will claim matching access after login.
+          Use the same email address used at checkout. The portal will review completed purchases
+          connected to this account and unlock the matching protocol access.
         </p>
       </section>
 

@@ -5,13 +5,6 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { sbpSections, therapeuticAddenda, type Role } from "@/data/mock";
 import { canViewTherapeuticAddenda } from "@/lib/access";
 
-function resolvePreviewRole(access?: string): Role {
-  if (access === "practitioner") return "practitioner";
-  if (access === "admin") return "admin";
-  if (access === "license_holder") return "license_holder";
-  return "client";
-}
-
 export default function ProtocolPage({
   params,
   searchParams
@@ -20,7 +13,7 @@ export default function ProtocolPage({
   searchParams: { access?: string };
 }) {
   const isSomatic = params.slug === "somatic-baseline";
-  const role = resolvePreviewRole(searchParams.access);
+  const role: Role = "client";
   const canViewAddendum = canViewTherapeuticAddenda(role);
   const sbpAddendum = therapeuticAddenda.find((addendum) => addendum.id === "DC-P01-SBP-TA01");
 
@@ -29,9 +22,9 @@ export default function ProtocolPage({
       <AppShell sessionRole={role}>
         <section className="content-section">
           <SectionHeader
-            eyebrow="Locked Prototype Route"
-            title="Protocol Preview Unavailable"
-            copy="Only the Somatic Baseline Protocol page is fully mocked in this rough MVP shell."
+            eyebrow="Protocol Access"
+            title="Protocol Currently Locked"
+            copy="This protocol is not available for this account yet. Complete the required prior protocol or purchase the matching protocol access."
           />
           <Link className="button primary" href="/">
             Return to Dashboard
@@ -82,11 +75,11 @@ export default function ProtocolPage({
 
           <section className="tool-panel">
             <div>
-              <span className="eyebrow">Mock Interactive Tool</span>
+              <span className="eyebrow">Interactive Tool</span>
               <h2>Nervous System Zone Check</h2>
               <p>
-                In production, this becomes a Supabase-backed log. For now, it demonstrates the
-                interaction model and dashboard signal.
+                Select the current nervous system zone before choosing the next regulation or
+                execution step.
               </p>
             </div>
             <div className="zone-grid" role="group" aria-label="Nervous system state selector">
@@ -126,7 +119,7 @@ export default function ProtocolPage({
                 />
               </label>
               <button className="button primary" type="button">
-                Save Mock Log
+                Save Log
               </button>
             </div>
           </section>
@@ -157,13 +150,12 @@ export default function ProtocolPage({
             ) : (
               <>
                 <p>
-                  This addendum is hidden from client-only access. In production, it will require a
-                  practitioner, admin, or licensed implementation entitlement before the content is
-                  rendered.
+                  This addendum is reserved for approved practitioner and licensed implementation
+                  access.
                 </p>
-                <a className="button secondary" href="/protocols/somatic-baseline?access=practitioner">
-                  Preview Addendum Access
-                </a>
+                <button className="button secondary" type="button" disabled>
+                  Practitioner Access Required
+                </button>
               </>
             )}
           </section>

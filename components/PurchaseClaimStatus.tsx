@@ -12,9 +12,9 @@ function statusCopy(state: ClaimState, result: PurchaseClaimResult | null) {
   if (state === "claimed" && result?.ok) {
     return `Access claimed: ${result.claimed.join(", ")}.`;
   }
-  if (state === "none") return "No unclaimed purchases were found for this verified email.";
+  if (state === "none") return "No new purchases were found for this verified email.";
   if (result && !result.ok) return result.error;
-  return "Purchase claim needs review.";
+  return "Purchase access could not be confirmed. Please contact support.";
 }
 
 export function PurchaseClaimStatus() {
@@ -65,4 +65,3 @@ export function PurchaseClaimStatus() {
     </section>
   );
 }
-

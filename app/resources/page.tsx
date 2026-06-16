@@ -9,7 +9,7 @@ export default function ResourcesPage() {
         <SectionHeader
           eyebrow="Resource Library"
           title="Support Architecture"
-          copy="Foundation resources and protocol companions remain searchable, downloadable, and permission-aware. Practitioner-only resources stay gated under the mock access model."
+          copy="Foundation resources and protocol companions remain organized, searchable, and available according to account access."
         />
         <SupabaseResourceGrid />
       </section>

@@ -16,7 +16,7 @@ export default function DashboardPage() {
           <h1>Protocol operating system for regulated self-command.</h1>
           <p>
             Review active protocol access, current nervous system work, resource architecture, and
-            practitioner-gated layers from one protected shell.
+            practitioner-gated layers from one protected portal.
           </p>
           <div className="hero-actions">
             <a className="button primary" href="/protocols/somatic-baseline">
@@ -41,7 +41,7 @@ export default function DashboardPage() {
         <SectionHeader
           eyebrow="Protocol Library"
           title="Sequential Access Model"
-          copy="Each protocol has its own entitlement, progress gates, and resource set. Locked states show why access is unavailable without marketing pressure."
+          copy="Each protocol has its own access record, progress gates, and resource set. Locked states clarify what becomes available next."
         />
         <SupabaseProtocolGrid />
       </section>
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <SectionHeader
           eyebrow="Resource Library"
           title="Support Architecture"
-          copy="Foundation resources and protocol companions remain searchable, downloadable, and permission-aware."
+          copy="Foundation resources and protocol companions remain organized, searchable, and available according to account access."
         />
         <SupabaseResourceGrid />
       </section>
@@ -59,7 +59,7 @@ export default function DashboardPage() {
         <SectionHeader
           eyebrow="Download Center"
           title="Printable Assets and Controlled Resources"
-          copy="Printable companions, ledgers, assessments, and practitioner materials are displayed according to the mock access model."
+          copy="Printable companions, ledgers, assessments, and practitioner materials are organized by protocol and access level."
         />
         <DownloadTable assets={downloads} />
       </section>
@@ -69,16 +69,13 @@ export default function DashboardPage() {
           <span className="eyebrow">Practitioner Layer</span>
           <h2>Therapeutic Integration Workspace</h2>
           <p>
-            Practitioner access remains locked for client-only sessions. The workspace now includes
-            client review, therapeutic addenda, notes workflow, and practitioner resource library
-            states for review before backend authentication is connected.
+            Practitioner access remains separate from client access. Approved practitioner accounts
+            receive client review tools, therapeutic addenda, notes workflow, and practitioner
+            resource materials.
           </p>
           <div className="hero-actions">
             <a className="button secondary" href="/practitioner">
-              View Locked State
-            </a>
-            <a className="button primary" href="/practitioner?access=practitioner">
-              Preview Practitioner
+              View Practitioner Layer
             </a>
           </div>
         </article>

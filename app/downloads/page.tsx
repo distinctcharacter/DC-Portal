@@ -10,7 +10,7 @@ export default function DownloadsPage() {
         <SectionHeader
           eyebrow="Download Center"
           title="Printable Assets and Controlled Resources"
-          copy="Printable companions, ledgers, assessments, and practitioner materials are displayed according to the mock access model. Available files open from the controlled resource library."
+          copy="Printable companions, ledgers, assessments, and practitioner materials are organized by protocol and access level."
         />
         <DownloadTable assets={downloads} />
       </section>

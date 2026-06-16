@@ -32,14 +32,14 @@ function mapResourceRow(row: ResourceAssetRow, existing?: Resource): Resource {
     access: row.practitioner_only ? "Practitioner" : existing?.access ?? "Unlocked",
     description:
       existing?.description ??
-      "Controlled resource metadata is reading from Supabase DEV. Signed URL delivery comes in the protected download phase.",
+      "Resource access is available through your account record.",
     href: row.public_path ?? existing?.href
   };
 }
 
 export function SupabaseResourceGrid() {
   const [rows, setRows] = useState<ResourceAssetRow[]>([]);
-  const [status, setStatus] = useState("Using mock resource access state.");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -50,7 +50,7 @@ export function SupabaseResourceGrid() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        if (mounted) setStatus("Login required for DEV resource metadata read. Showing mock resources.");
+        if (mounted) setNotice("Sign in to review available resource access.");
         return;
       }
 
@@ -62,19 +62,17 @@ export function SupabaseResourceGrid() {
       if (!mounted) return;
 
       if (error) {
-        setStatus(`DEV resource read needs review: ${error.message}. Showing mock resources.`);
+        setNotice("Resource library could not load. Refresh this page or contact support.");
         return;
       }
 
       if (!data?.length) {
-        setStatus(
-          "Protected resource metadata is entitlement-gated in DEV. Showing mock resources until entitlements are connected."
-        );
+        setNotice("");
         return;
       }
 
       setRows(data);
-      setStatus("Resource metadata is reading from Supabase DEV. Download access remains mocked.");
+      setNotice("");
     }
 
     loadResources();
@@ -95,7 +93,7 @@ export function SupabaseResourceGrid() {
 
   return (
     <>
-      <p className="dev-sync-note">{status}</p>
+      {notice ? <p className="dev-sync-note">{notice}</p> : null}
       <div className="resource-grid">
         {displayResources.map((resource) => (
           <ResourceCard resource={resource} key={resource.id} />
@@ -104,4 +102,3 @@ export function SupabaseResourceGrid() {
     </>
   );
 }
-

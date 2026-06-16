@@ -30,8 +30,8 @@ export function canManagePractitionerNotes(role: Role) {
 
 export function practitionerAccessReason(role: Role) {
   if (canViewPractitionerLayer(role)) {
-    return "Practitioner access active for this mock session.";
+    return "Practitioner access is active for this account.";
   }
 
-  return "Practitioner layer requires a practitioner, admin, or licensed implementation entitlement.";
+  return "Practitioner layer requires approved practitioner or licensed implementation access.";
 }

@@ -42,7 +42,7 @@ export default function AuthCallbackPage() {
           const profileResult = await syncProfile(data.session.user);
 
           if (!profileResult.ok) {
-            setStatus(`Authentication confirmed, but profile sync needs review: ${profileResult.message}`);
+            setStatus("Authentication confirmed. Portal access could not be refreshed. Please contact support.");
             return;
           }
 
@@ -54,13 +54,11 @@ export default function AuthCallbackPage() {
           }
 
           if (claimResult.ok) {
-            setStatus("Authentication confirmed and portal profile synced. You can return to the dashboard.");
+            setStatus("Authentication confirmed. You can return to the dashboard.");
             return;
           }
 
-          setStatus(
-            `Authentication confirmed and portal profile synced. Purchase claim needs review: ${claimResult.error}`
-          );
+          setStatus("Authentication confirmed. Purchase access could not be refreshed. Please contact support.");
           return;
         }
 

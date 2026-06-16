@@ -28,29 +28,25 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <span className="eyebrow">Practitioner Layer</span>
           <h1>Therapeutic integration workspace is locked.</h1>
           <p>
-            This layer is reserved for practitioner, admin, and future licensed implementation
-            access. Client users can continue protocols and download their permitted resources, but
-            they cannot view therapeutic addenda, practitioner notes, client review tools, or
-            implementation supervision materials.
+            This layer is reserved for approved practitioner and licensed implementation access.
+            Client accounts can continue protocols and download permitted resources, but
+            practitioner review tools and therapeutic addenda remain protected.
           </p>
           <div className="lock-grid">
             <div>
-              <strong>Locked Access Logic</strong>
+              <strong>Access Required</strong>
               <span>{practitionerAccessReason(role)}</span>
             </div>
             <div>
-              <strong>Hidden From Client View</strong>
+              <strong>Practitioner Tools</strong>
               <span>Client review queue, practitioner resource library, therapeutic addenda.</span>
             </div>
             <div>
-              <strong>Future Backend Rule</strong>
-              <span>Supabase role claim plus product entitlement check before page render.</span>
+              <strong>Licensed Use</strong>
+              <span>Organization implementation materials remain separate from client access.</span>
             </div>
           </div>
           <div className="hero-actions">
-            <Link className="button primary" href="/practitioner?access=practitioner">
-              Preview Practitioner Access
-            </Link>
             <Link className="button secondary" href="/">
               Return to Dashboard
             </Link>
@@ -82,7 +78,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
         </div>
         <div className="access-panel">
           <span className="eyebrow">Access Check</span>
-          <strong>Practitioner entitlement active</strong>
+          <strong>Practitioner access active</strong>
           <p>{practitionerAccessReason(role)}</p>
           <dl>
             <div>
@@ -102,7 +98,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
       </section>
 
       <section className="stat-grid" aria-label="Practitioner summary">
-        <StatCard label="Assigned Clients" value="3" detail="Mock implementation cohort" tone="gold" />
+        <StatCard label="Assigned Clients" value="3" detail="Implementation cohort" tone="gold" />
         <StatCard label="Needs Review" value="1" detail="Capacity and pacing check recommended" tone="blue" />
         <StatCard label="Practitioner Notes" value="3" detail="Draft, shared, and practitioner-only states" />
         <StatCard label="Addenda" value="3" detail="Role-gated therapeutic implementation material" tone="green" />
@@ -167,7 +163,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
         <SectionHeader
           eyebrow="Notes and Review Workflow"
           title="Practitioner Observation Ledger"
-          copy="Mock note states demonstrate how production can separate private practitioner notes from client-visible feedback."
+          copy="Practitioner notes separate private observation from client-visible feedback."
         />
         <div className="notes-layout">
           <div className="notes-list">
@@ -185,7 +181,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
             ))}
           </div>
           <form className="mock-form note-composer">
-            <span className="eyebrow">Mock Composer</span>
+            <span className="eyebrow">Practitioner Note</span>
             <h3>New Practitioner Note</h3>
             <label>
               Client
@@ -212,7 +208,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
               />
             </label>
             <button className="button primary" type="button">
-              Save Mock Note
+              Save Note
             </button>
           </form>
         </div>
@@ -222,7 +218,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
         <SectionHeader
           eyebrow="Practitioner Resource Library"
           title="Implementation Materials"
-          copy="Practitioner tools remain separate from client-facing resources and can later be tied to product purchase, organization license, or admin assignment."
+          copy="Practitioner tools remain separate from client-facing resources and support approved implementation, review, and educational boundaries."
         />
         <div className="resource-grid">
           {practitionerResources.map((resource) => (

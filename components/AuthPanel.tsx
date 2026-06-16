@@ -69,7 +69,7 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
         });
 
         if (authError) throw authError;
-        setMessage("Account created. Check your email if Supabase asks you to confirm it.");
+        setMessage("Account created. Check your email if confirmation is required.");
         return;
       }
 
@@ -172,8 +172,8 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
         <div className="auth-note">
           <span className="eyebrow">Purchase Claim Safety</span>
           <p>
-            Use the same verified email used at checkout. Protocol access will stay mocked until
-            a matching Stripe purchase has been recorded and claimed by this portal account.
+            Use the same verified email used at checkout so the portal can locate and unlock the
+            correct protocol access.
           </p>
         </div>
       ) : null}

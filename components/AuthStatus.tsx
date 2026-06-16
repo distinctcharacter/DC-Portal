@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabase/client";
 export function AuthStatus() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [profileStatus, setProfileStatus] = useState("Profile not synced");
+  const [profileStatus, setProfileStatus] = useState("Portal access pending");
 
   useEffect(() => {
     let mounted = true;
@@ -22,7 +22,7 @@ export function AuthStatus() {
       if (data.user) {
         syncProfile(data.user).then((result) => {
           if (!mounted) return;
-          setProfileStatus(result.ok ? "Profile synced" : "Profile sync needs review");
+          setProfileStatus(result.ok ? "Portal access active" : "Portal access needs support");
         });
       }
     });
@@ -33,10 +33,10 @@ export function AuthStatus() {
 
       if (session?.user) {
         syncProfile(session.user).then((result) => {
-          setProfileStatus(result.ok ? "Profile synced" : "Profile sync needs review");
+          setProfileStatus(result.ok ? "Portal access active" : "Portal access needs support");
         });
       } else {
-        setProfileStatus("Profile not synced");
+        setProfileStatus("Portal access pending");
       }
     });
 
@@ -49,7 +49,7 @@ export function AuthStatus() {
   async function signOut() {
     await supabase.auth.signOut();
     setUser(null);
-    setProfileStatus("Profile not synced");
+    setProfileStatus("Portal access pending");
   }
 
   if (loading) {
@@ -69,7 +69,7 @@ export function AuthStatus() {
   }
 
   return (
-    <div className="auth-status" aria-label="Authenticated DEV account">
+    <div className="auth-status" aria-label="Authenticated account">
       <span title={profileStatus}>{user.email}</span>
       <button className="button secondary" type="button" onClick={signOut}>
         Sign out

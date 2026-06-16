@@ -160,7 +160,7 @@ export const protocols: Protocol[] = [
     type: "commercial",
     status: "locked",
     completion: 0,
-    nextAction: "Requires Enterprise IP Mastermind purchase or admin grant.",
+    nextAction: "Requires Enterprise IP Mastermind access.",
     description:
       "A high-ticket commercial incubation system for converting self-mastery into licensable intellectual property."
   }
@@ -432,7 +432,7 @@ export const downloads: DownloadAsset[] = [
     title: "Enterprise IP Mastermind Advisor Legal-Ops Guide",
     protocol: "Enterprise IP Mastermind",
     type: "Advisor Resource",
-    audience: "Advisor + Admin",
+    audience: "Advisor",
     status: "Locked",
     href: "/resources/enterprise-ip-mastermind-advisor-guide.pdf"
   }

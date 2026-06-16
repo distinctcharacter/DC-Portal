@@ -47,7 +47,7 @@ function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, 
     nextAction: hasAccess
       ? existing?.nextAction ?? "Access active. Continue protocol work."
       : existing?.nextAction ?? "Purchase or prerequisite completion required.",
-    description: row.description ?? existing?.description ?? "Protocol catalog record synced from Supabase DEV.",
+    description: row.description ?? existing?.description ?? "Protocol access is available through your account record.",
     requirements: existing?.requirements,
     children: existing?.children
   };
@@ -56,7 +56,7 @@ function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, 
 export function SupabaseProtocolGrid() {
   const [rows, setRows] = useState<ProtocolRow[]>([]);
   const [accessibleProtocolIds, setAccessibleProtocolIds] = useState<Set<string>>(new Set());
-  const [status, setStatus] = useState("Using mock protocol access state.");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -67,7 +67,7 @@ export function SupabaseProtocolGrid() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        if (mounted) setStatus("Login required for DEV protocol catalog read. Showing mock catalog.");
+        if (mounted) setNotice("Sign in to review your current protocol access.");
         return;
       }
 
@@ -79,7 +79,7 @@ export function SupabaseProtocolGrid() {
       if (!mounted) return;
 
       if (error) {
-        setStatus(`DEV catalog read needs review: ${error.message}. Showing mock catalog.`);
+        setNotice("Protocol catalog could not load. Refresh this page or contact support.");
         return;
       }
 
@@ -89,7 +89,7 @@ export function SupabaseProtocolGrid() {
         .eq("status", "active");
 
       if (entitlementError) {
-        setStatus(`Catalog loaded. Entitlement read needs review: ${entitlementError.message}.`);
+        setNotice("Protocol access could not load. Refresh this page or contact support.");
         setRows(data ?? []);
         return;
       }
@@ -107,7 +107,7 @@ export function SupabaseProtocolGrid() {
           .in("bundle_protocol_id", bundleIds);
 
         if (childError) {
-          setStatus(`Catalog loaded. Bundle access needs review: ${childError.message}.`);
+          setNotice("Bundle access could not be confirmed. Refresh this page or contact support.");
           setRows(data ?? []);
           return;
         }
@@ -127,7 +127,7 @@ export function SupabaseProtocolGrid() {
 
       setAccessibleProtocolIds(nextAccessibleIds);
       setRows(data ?? []);
-      setStatus("Protocol catalog and access state are reading from Supabase.");
+      setNotice("");
     }
 
     loadProtocols();
@@ -148,7 +148,7 @@ export function SupabaseProtocolGrid() {
 
   return (
     <>
-      <p className="dev-sync-note">{status}</p>
+      {notice ? <p className="dev-sync-note">{notice}</p> : null}
       <div className="protocol-grid">
         {displayProtocols.map((protocol) => (
           <ProtocolCard protocol={protocol} key={protocol.id} />
