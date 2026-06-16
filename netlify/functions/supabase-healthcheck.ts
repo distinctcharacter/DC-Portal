@@ -14,6 +14,15 @@ function jsonResponse(statusCode: number, body: unknown) {
   };
 }
 
+function stripeSecretMode() {
+  const key = process.env.STRIPE_SECRET_KEY ?? "";
+
+  if (key.startsWith("sk_live_")) return "live";
+  if (key.startsWith("sk_test_")) return "test";
+  if (key) return "unknown";
+  return "missing";
+}
+
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "GET") {
     return jsonResponse(405, { ok: false, error: "Method not allowed." });
@@ -34,13 +43,17 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(200, {
       ok: true,
       stage: "supabase_query",
-      webhookEventRowsVisible: data?.length ?? 0
+      webhookEventRowsVisible: data?.length ?? 0,
+      stripeSecretMode: stripeSecretMode(),
+      stripeWebhookSecretConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET)
     });
   } catch (error) {
     return jsonResponse(200, {
       ok: false,
       stage: "environment_or_client",
-      error: error instanceof Error ? error.message : "Unknown Supabase healthcheck error."
+      error: error instanceof Error ? error.message : "Unknown Supabase healthcheck error.",
+      stripeSecretMode: stripeSecretMode(),
+      stripeWebhookSecretConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET)
     });
   }
 }

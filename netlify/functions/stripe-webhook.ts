@@ -165,6 +165,10 @@ function getPaymentLinkId(value: string | null | undefined) {
   return match?.[0] ?? value;
 }
 
+function isLiveSession(session: CheckoutSession) {
+  return session.livemode !== false;
+}
+
 function getProductId(lineItem: StripeLineItem) {
   const product = lineItem.price?.product;
 
@@ -431,7 +435,7 @@ export async function handler(event: FunctionEvent) {
             lineItemError
           );
           await updateWebhookStatus(admin, stripeEvent.id, "failed");
-          return jsonResponse(200, {
+          return jsonResponse(isLiveSession(session) ? 500 : 200, {
             ok: true,
             status: "stripe_line_item_lookup_failed",
             message:
@@ -464,7 +468,7 @@ export async function handler(event: FunctionEvent) {
 
     if (!match) {
       await updateWebhookStatus(admin, stripeEvent.id, "failed");
-      return jsonResponse(200, {
+      return jsonResponse(isLiveSession(session) ? 500 : 200, {
         ok: true,
         status: "unmapped_product",
         message: "Webhook received, but this Stripe test product is not mapped to a portal product."
@@ -517,8 +521,8 @@ export async function handler(event: FunctionEvent) {
       // Preserve the original failure response.
     }
 
-    return jsonResponse(200, {
-      ok: true,
+    return jsonResponse(500, {
+      ok: false,
       status: "processing_error_logged",
       message
     });
