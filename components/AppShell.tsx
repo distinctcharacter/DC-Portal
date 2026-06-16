@@ -37,8 +37,8 @@ export function AppShell({ children, sessionRole = mockUser.role }: AppShellProp
           ))}
         </nav>
         <div className="role-card">
-          <span className="eyebrow">Mock Session</span>
-          <strong>{mockUser.name}</strong>
+          <span className="eyebrow">Portal Session</span>
+          <strong>Distinct Character Access</strong>
           <span>Role: {sessionRole}</span>
         </div>
       </aside>
@@ -46,7 +46,7 @@ export function AppShell({ children, sessionRole = mockUser.role }: AppShellProp
         <header className="topbar">
           <div>
             <span className="eyebrow">Protected Portal Shell</span>
-            <p>DEV Supabase Auth is available. Protocol access and payments remain mocked.</p>
+            <p>Protocol access is controlled by verified account, purchase, and entitlement records.</p>
           </div>
           <AuthStatus />
         </header>

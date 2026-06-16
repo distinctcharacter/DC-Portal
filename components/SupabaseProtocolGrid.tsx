@@ -16,7 +16,21 @@ type ProtocolRow = {
   description: string | null;
 };
 
-function mergeProtocolRow(row: ProtocolRow, existing?: Protocol): Protocol {
+type EntitlementRow = {
+  entitlement_type: "protocol" | "bundle" | string;
+  protocol_id: string | null;
+  status: string;
+};
+
+type BundleProtocolRow = {
+  bundle_protocol_id: string;
+  child_protocol_id: string;
+};
+
+function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, existing?: Protocol): Protocol {
+  const hasAccess = accessibleProtocolIds.has(row.id);
+  const defaultStatus = row.status === "future" ? "future" : hasAccess ? "available" : "locked";
+
   return {
     id: row.id,
     slug: row.slug,
@@ -24,10 +38,15 @@ function mergeProtocolRow(row: ProtocolRow, existing?: Protocol): Protocol {
     phase: row.phase_label,
     type: existing?.type ?? (row.parent_protocol_id ? "child" : row.status === "future" ? "future" : "core"),
     status:
-      existing?.status ??
-      (row.status === "future" ? "future" : row.status === "active" ? "locked" : "future"),
+      hasAccess && existing?.status === "in_progress"
+        ? "in_progress"
+        : hasAccess && existing?.status === "completed"
+          ? "completed"
+          : defaultStatus,
     completion: existing?.completion ?? 0,
-    nextAction: existing?.nextAction ?? "Access rules will resolve through DEV entitlements in the next phase.",
+    nextAction: hasAccess
+      ? existing?.nextAction ?? "Access active. Continue protocol work."
+      : existing?.nextAction ?? "Purchase or prerequisite completion required.",
     description: row.description ?? existing?.description ?? "Protocol catalog record synced from Supabase DEV.",
     requirements: existing?.requirements,
     children: existing?.children
@@ -36,6 +55,7 @@ function mergeProtocolRow(row: ProtocolRow, existing?: Protocol): Protocol {
 
 export function SupabaseProtocolGrid() {
   const [rows, setRows] = useState<ProtocolRow[]>([]);
+  const [accessibleProtocolIds, setAccessibleProtocolIds] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState("Using mock protocol access state.");
 
   useEffect(() => {
@@ -63,8 +83,51 @@ export function SupabaseProtocolGrid() {
         return;
       }
 
+      const { data: entitlements, error: entitlementError } = await supabase
+        .from("protocol_entitlements")
+        .select("entitlement_type, protocol_id, status")
+        .eq("status", "active");
+
+      if (entitlementError) {
+        setStatus(`Catalog loaded. Entitlement read needs review: ${entitlementError.message}.`);
+        setRows(data ?? []);
+        return;
+      }
+
+      const bundleIds = ((entitlements ?? []) as EntitlementRow[])
+        .filter((entitlement) => entitlement.entitlement_type === "bundle" && entitlement.protocol_id)
+        .map((entitlement) => entitlement.protocol_id as string);
+
+      let bundleChildren: BundleProtocolRow[] = [];
+
+      if (bundleIds.length) {
+        const { data: childRows, error: childError } = await supabase
+          .from("bundle_protocols")
+          .select("bundle_protocol_id, child_protocol_id")
+          .in("bundle_protocol_id", bundleIds);
+
+        if (childError) {
+          setStatus(`Catalog loaded. Bundle access needs review: ${childError.message}.`);
+          setRows(data ?? []);
+          return;
+        }
+
+        bundleChildren = (childRows ?? []) as BundleProtocolRow[];
+      }
+
+      const nextAccessibleIds = new Set<string>();
+
+      for (const entitlement of (entitlements ?? []) as EntitlementRow[]) {
+        if (entitlement.protocol_id) nextAccessibleIds.add(entitlement.protocol_id);
+      }
+
+      for (const child of bundleChildren) {
+        nextAccessibleIds.add(child.child_protocol_id);
+      }
+
+      setAccessibleProtocolIds(nextAccessibleIds);
       setRows(data ?? []);
-      setStatus("Protocol catalog is reading from Supabase DEV. Access states remain mocked.");
+      setStatus("Protocol catalog and access state are reading from Supabase.");
     }
 
     loadProtocols();
@@ -79,9 +142,9 @@ export function SupabaseProtocolGrid() {
 
     return rows.map((row) => {
       const existing = mockProtocols.find((protocol) => protocol.id === row.id);
-      return mergeProtocolRow(row, existing);
+      return mergeProtocolRow(row, accessibleProtocolIds, existing);
     });
-  }, [rows]);
+  }, [accessibleProtocolIds, rows]);
 
   return (
     <>
@@ -94,4 +157,3 @@ export function SupabaseProtocolGrid() {
     </>
   );
 }
-
