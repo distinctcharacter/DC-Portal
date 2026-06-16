@@ -9,8 +9,8 @@ export default function DownloadsPage() {
       <section className="content-section route-section">
         <SectionHeader
           eyebrow="Download Center"
-          title="Printable Assets and Controlled Resources"
-          copy="Printable companions, ledgers, assessments, and practitioner materials are organized by protocol and access level."
+          title="Printable Assets and Resource Files"
+          copy="Printable companions, ledgers, assessments, and reference materials are organized by protocol."
         />
         <DownloadTable assets={downloads} />
       </section>

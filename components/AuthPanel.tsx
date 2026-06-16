@@ -170,7 +170,7 @@ export function AuthPanel({ context = "login" }: AuthPanelProps) {
 
       {context === "claim" ? (
         <div className="auth-note">
-          <span className="eyebrow">Purchase Claim Safety</span>
+          <span className="eyebrow">Purchase Access</span>
           <p>
             Use the same verified email used at checkout so the portal can locate and unlock the
             correct protocol access.

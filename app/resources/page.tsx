@@ -9,7 +9,7 @@ export default function ResourcesPage() {
         <SectionHeader
           eyebrow="Resource Library"
           title="Support Architecture"
-          copy="Foundation resources and protocol companions remain organized, searchable, and available according to account access."
+          copy="Foundation resources and protocol companions remain organized, searchable, and easy to return to."
         />
         <SupabaseResourceGrid />
       </section>

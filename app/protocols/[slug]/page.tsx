@@ -150,8 +150,7 @@ export default function ProtocolPage({
             ) : (
               <>
                 <p>
-                  This addendum is reserved for approved practitioner and licensed implementation
-                  access.
+                  This addendum is reserved for approved practitioner access.
                 </p>
                 <button className="button secondary" type="button" disabled>
                   Practitioner Access Required

@@ -66,7 +66,7 @@ export type TherapeuticAddendum = {
 };
 
 export const mockUser = {
-  name: "Azari Preview",
+  name: "Portal Account",
   role: "client" as Role,
   activeProtocol: "Somatic Baseline Protocol",
   currentPhase: "Section II: Biological Architecture"
@@ -197,7 +197,7 @@ export const resources: Resource[] = [
     audience: "Client + Practitioner",
     access: "Unlocked",
     description:
-      "Controlled language for protocol copy, resource interpretation, practitioner alignment, and future licensing.",
+      "A shared language reference for protocol concepts, practitioner alignment, and future licensing.",
     href: "/resources/distinct-character-framework-glossary.pdf"
   },
   {
@@ -252,7 +252,7 @@ export const resources: Resource[] = [
     audience: "Practitioner",
     access: "Practitioner",
     description:
-      "Practitioner-facing safety, pacing, and clinical-adjacent implementation notes.",
+      "Practitioner-facing safety, pacing, and clinical-adjacent review notes.",
     href: "/resources/somatic-baseline-protocol.pdf"
   },
   {
@@ -263,7 +263,7 @@ export const resources: Resource[] = [
     audience: "Advisor",
     access: "Practitioner",
     description:
-      "A high-ticket implementation suite for structuring, pricing, packaging, and protecting intellectual property as a commercial asset.",
+      "A high-ticket resource suite for structuring, pricing, packaging, and protecting intellectual property as a commercial asset.",
     href: "/resources/enterprise-ip-mastermind-resource-suite.pdf"
   },
   {
@@ -274,7 +274,7 @@ export const resources: Resource[] = [
     audience: "Advisor",
     access: "Practitioner",
     description:
-      "A protected advisor-facing guide for legal-operational boundaries, commercial review, licensing readiness, and implementation oversight.",
+      "An advisor-facing guide for legal-operational boundaries, commercial review, licensing readiness, and professional oversight.",
     href: "/resources/enterprise-ip-mastermind-advisor-guide.pdf"
   },
   {
@@ -296,7 +296,7 @@ export const resources: Resource[] = [
     audience: "Practitioner",
     access: "Practitioner",
     description:
-      "Scope guidance for educational implementation, escalation boundaries, and referral indicators.",
+      "Scope guidance for educational use, escalation boundaries, and referral indicators.",
     href: "/resources/nervous-system-governance-guide.pdf"
   }
 ];
@@ -512,7 +512,7 @@ export const practitionerClients: ClientReview[] = [
     completion: 53,
     lastSignal: "Repeated missed logs after relational activation.",
     riskFlag: "Needs Review",
-    nextReview: "Check safety boundaries, capacity load, and implementation friction."
+    nextReview: "Check safety boundaries, capacity load, and practice friction."
   }
 ];
 
@@ -570,8 +570,8 @@ export const therapeuticAddenda: TherapeuticAddendum[] = [
     title: "30-Day Sovereignty Reset Therapeutic Addendum",
     protocol: "30-Day Sovereignty Reset",
     scope:
-      "Timed reset pacing, capacity protection, cohort considerations, and escalation boundaries for practitioner-guided implementation.",
+      "Timed reset pacing, capacity protection, cohort considerations, and escalation boundaries for practitioner-guided use.",
     reviewUse:
-      "Use when daily enforcement reveals repeated nervous system strain, relational activation, or implementation collapse."
+      "Use when daily enforcement reveals repeated nervous system strain, relational activation, or practice collapse."
   }
 ];

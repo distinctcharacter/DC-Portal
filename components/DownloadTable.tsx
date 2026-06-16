@@ -25,7 +25,7 @@ export function DownloadTable({ assets }: { assets: DownloadAsset[] }) {
                 Open
               </a>
             ) : (
-              <span className="table-muted">Gated</span>
+              <span className="table-muted">Locked</span>
             )}
           </span>
         </div>

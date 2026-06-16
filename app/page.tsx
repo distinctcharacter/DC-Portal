@@ -15,8 +15,8 @@ export default function DashboardPage() {
           <span className="eyebrow">Behavioral Governance Dashboard</span>
           <h1>Protocol operating system for regulated self-command.</h1>
           <p>
-            Review active protocol access, current nervous system work, resource architecture, and
-            practitioner-gated layers from one protected portal.
+            Review your active protocol, current nervous system work, resource library, and next
+            steps from one structured workspace.
           </p>
           <div className="hero-actions">
             <a className="button primary" href="/protocols/somatic-baseline">
@@ -41,7 +41,7 @@ export default function DashboardPage() {
         <SectionHeader
           eyebrow="Protocol Library"
           title="Sequential Access Model"
-          copy="Each protocol has its own access record, progress gates, and resource set. Locked states clarify what becomes available next."
+          copy="Your available protocols appear alongside the next work required for progression."
         />
         <SupabaseProtocolGrid />
       </section>
@@ -50,7 +50,7 @@ export default function DashboardPage() {
         <SectionHeader
           eyebrow="Resource Library"
           title="Support Architecture"
-          copy="Foundation resources and protocol companions remain organized, searchable, and available according to account access."
+          copy="Foundation resources and protocol companions remain organized, searchable, and easy to return to."
         />
         <SupabaseResourceGrid />
       </section>
@@ -58,8 +58,8 @@ export default function DashboardPage() {
       <section className="content-section" id="downloads">
         <SectionHeader
           eyebrow="Download Center"
-          title="Printable Assets and Controlled Resources"
-          copy="Printable companions, ledgers, assessments, and practitioner materials are organized by protocol and access level."
+          title="Printable Assets and Resource Files"
+          copy="Printable companions, ledgers, assessments, and reference materials are organized by protocol."
         />
         <DownloadTable assets={downloads} />
       </section>
@@ -70,8 +70,8 @@ export default function DashboardPage() {
           <h2>Therapeutic Integration Workspace</h2>
           <p>
             Practitioner access remains separate from client access. Approved practitioner accounts
-            receive client review tools, therapeutic addenda, notes workflow, and practitioner
-            resource materials.
+            receive dedicated review tools, therapeutic addenda, and professional resource
+            materials.
           </p>
           <div className="hero-actions">
             <a className="button secondary" href="/practitioner">
@@ -84,11 +84,11 @@ export default function DashboardPage() {
           <span className="eyebrow">Expansion Layer</span>
           <h2>Masterclass Series</h2>
           <p>
-            Future purchasable education lives outside the core protocol ladder. This preserves the
-            seriousness of the sequential system while leaving room for advanced trainings.
+            Advanced education lives outside the core protocol ladder, preserving the seriousness
+            of the sequential system while creating space for specialized trainings.
           </p>
           <a className="button secondary" href="/masterclass">
-            Future Access
+            View Series
           </a>
         </article>
       </section>

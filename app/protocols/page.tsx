@@ -9,7 +9,7 @@ export default function ProtocolsPage() {
         <SectionHeader
           eyebrow="Protocol Library"
           title="Sequential Access Model"
-          copy="Each protocol has its own access record, progress gates, and resource set. Locked states clarify what becomes available next."
+          copy="Your available protocols appear alongside the next work required for progression."
         />
         <SupabaseProtocolGrid />
       </section>

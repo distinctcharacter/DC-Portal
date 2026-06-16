@@ -33,5 +33,5 @@ export function practitionerAccessReason(role: Role) {
     return "Practitioner access is active for this account.";
   }
 
-  return "Practitioner layer requires approved practitioner or licensed implementation access.";
+  return "Practitioner layer requires approved practitioner access.";
 }

@@ -28,13 +28,13 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <span className="eyebrow">Practitioner Layer</span>
           <h1>Therapeutic integration workspace is locked.</h1>
           <p>
-            This layer is reserved for approved practitioner and licensed implementation access.
-            Client accounts can continue protocols and download permitted resources, but
-            practitioner review tools and therapeutic addenda remain protected.
+            This layer is reserved for approved practitioner access. Client accounts can continue
+            protocols and download permitted resources, while practitioner review tools and
+            therapeutic addenda remain protected.
           </p>
           <div className="lock-grid">
             <div>
-              <strong>Access Required</strong>
+              <strong>Practitioner Access</strong>
               <span>{practitionerAccessReason(role)}</span>
             </div>
             <div>
@@ -42,8 +42,8 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
               <span>Client review queue, practitioner resource library, therapeutic addenda.</span>
             </div>
             <div>
-              <strong>Licensed Use</strong>
-              <span>Organization implementation materials remain separate from client access.</span>
+              <strong>Professional Materials</strong>
+              <span>Advanced review materials remain separate from client access.</span>
             </div>
           </div>
           <div className="hero-actions">
@@ -64,7 +64,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <h1>Client review and therapeutic integration console.</h1>
           <p>
             Review assigned client progress, monitor pacing signals, access practitioner-only
-            addenda, and document implementation notes without exposing clinical-adjacent guidance
+            addenda, and document practice notes without exposing clinical-adjacent guidance
             to client-only accounts.
           </p>
           <div className="hero-actions">
@@ -77,7 +77,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           </div>
         </div>
         <div className="access-panel">
-          <span className="eyebrow">Access Check</span>
+          <span className="eyebrow">Practitioner Workspace</span>
           <strong>Practitioner access active</strong>
           <p>{practitionerAccessReason(role)}</p>
           <dl>
@@ -98,10 +98,10 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
       </section>
 
       <section className="stat-grid" aria-label="Practitioner summary">
-        <StatCard label="Assigned Clients" value="3" detail="Implementation cohort" tone="gold" />
+        <StatCard label="Assigned Clients" value="3" detail="Practice cohort" tone="gold" />
         <StatCard label="Needs Review" value="1" detail="Capacity and pacing check recommended" tone="blue" />
         <StatCard label="Practitioner Notes" value="3" detail="Draft, shared, and practitioner-only states" />
-        <StatCard label="Addenda" value="3" detail="Role-gated therapeutic implementation material" tone="green" />
+        <StatCard label="Addenda" value="3" detail="Therapeutic integration material" tone="green" />
       </section>
 
       <section className="content-section" id="client-review">
@@ -142,7 +142,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
       <section className="content-section" id="therapeutic-addenda">
         <SectionHeader
           eyebrow="Practitioner-Only Therapeutic Addenda"
-          title="Role-Gated Implementation Guidance"
+          title="Therapeutic Integration Guidance"
           copy="Addenda are visible only when practitioner access is active. They support pacing, safety boundaries, observation, and referral awareness."
         />
         <div className="addenda-list">
@@ -217,8 +217,8 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
       <section className="content-section" id="practitioner-resources">
         <SectionHeader
           eyebrow="Practitioner Resource Library"
-          title="Implementation Materials"
-          copy="Practitioner tools remain separate from client-facing resources and support approved implementation, review, and educational boundaries."
+          title="Professional Materials"
+          copy="Practitioner tools remain separate from client-facing resources and support review, pacing, and educational boundaries."
         />
         <div className="resource-grid">
           {practitionerResources.map((resource) => (

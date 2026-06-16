@@ -45,8 +45,8 @@ export function AppShell({ children, sessionRole = mockUser.role }: AppShellProp
       <div className="main-frame">
         <header className="topbar">
           <div>
-            <span className="eyebrow">Protected Portal</span>
-            <p>Protocol access is controlled by verified account and purchase records.</p>
+            <span className="eyebrow">Distinct Character Portal</span>
+            <p>Continue your protocol work, resources, and guided progression from one private workspace.</p>
           </div>
           <AuthStatus />
         </header>

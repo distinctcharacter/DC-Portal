@@ -16,7 +16,7 @@ export default function MasterclassPage() {
           <p>
             This area houses masterclasses, expansion trainings, and advanced educational
             offerings. It is intentionally separated from the core protocol progression so the
-            operating system remains structured, gated, and clinically adjacent.
+            operating system remains structured and clinically adjacent.
           </p>
           <div className="lock-grid">
             <div>
