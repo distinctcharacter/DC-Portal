@@ -65,6 +65,24 @@ export type TherapeuticAddendum = {
   reviewUse: string;
 };
 
+export type EnterpriseIpModule = {
+  id: string;
+  title: string;
+  phase: string;
+  objective: string;
+  deliverable: string;
+  gate: string;
+};
+
+export type EnterpriseIpClientNote = {
+  id: string;
+  moduleId: string;
+  title: string;
+  body: string;
+  status: "Shared" | "Draft";
+  updatedAt: string;
+};
+
 export const mockUser = {
   name: "Portal Account",
   role: "client" as Role,
@@ -480,6 +498,169 @@ export const sbpSections = [
     status: "locked",
     summary:
       "A set of practical interventions for acute activation, shutdown, and capacity recovery."
+  }
+];
+
+export const enterpriseIpModules: EnterpriseIpModule[] = [
+  {
+    id: "M0",
+    title: "Commercial Incubation Orientation",
+    phase: "Entry Gate",
+    objective:
+      "Enter the mastermind as a commercial build, not passive education. Clarify the asset being incubated and the identity threshold required to hold it.",
+    deliverable: "Commercial Incubation Entry Brief",
+    gate:
+      "Client can name the commercial asset, the buyer being served, and the boundary between self-mastery work and market-facing IP."
+  },
+  {
+    id: "M1",
+    title: "Founder Identity and Authority Stabilization",
+    phase: "Identity Architecture",
+    objective:
+      "Identify the identity patterns that distort pricing, visibility, authority, enforcement, and buyer selection.",
+    deliverable: "Commercial Authority Profile",
+    gate:
+      "Client can state the authority risks that would weaken the offer and the governing standards that replace them."
+  },
+  {
+    id: "M2",
+    title: "IP Excavation and Asset Classification",
+    phase: "IP Extraction",
+    objective:
+      "Separate raw insight from teachable, sellable, protectable architecture through asset classification.",
+    deliverable: "Classified IP Asset Register",
+    gate:
+      "Client can classify assets as public signal, paid method, license-ready, or protected origin."
+  },
+  {
+    id: "M3",
+    title: "Market Problem and Buyer Architecture",
+    phase: "Market Translation",
+    objective:
+      "Translate the work from internal brilliance into a buyer-recognizable commercial problem with economic and identity relevance.",
+    deliverable: "Buyer Problem Architecture Brief",
+    gate:
+      "Client can name the problem, the cost of leaving it unresolved, and the buyer ready to pay for the transformation."
+  },
+  {
+    id: "M4",
+    title: "Framework Encoding",
+    phase: "Method Design",
+    objective:
+      "Convert intuition, repeated practice, and decision logic into a named method that can be taught and evaluated.",
+    deliverable: "Framework Encoding Map",
+    gate:
+      "Client can explain the method through structure, definitions, sequence, and boundaries without unsupported claims."
+  },
+  {
+    id: "M5",
+    title: "Transformation Design and Evidence Logic",
+    phase: "Transformation Architecture",
+    objective:
+      "Define how transformation happens inside the offer and how progress can be observed without guaranteeing outcomes.",
+    deliverable: "Transformation Evidence Map",
+    gate:
+      "Client can define the promised transformation with truthful language, support boundaries, and observable indicators."
+  },
+  {
+    id: "M6",
+    title: "Offer Architecture and Delivery Container",
+    phase: "Offer Build",
+    objective:
+      "Turn the method into a purchasable premium container with clear fit, exclusions, pacing, support, and deliverables.",
+    deliverable: "Premium Offer Architecture Brief",
+    gate:
+      "Client can explain what is included, what is not included, who it is for, who it is not for, and why the delivery model fits."
+  },
+  {
+    id: "M7",
+    title: "Pricing Mechanics and Revenue Model",
+    phase: "Monetization Architecture",
+    objective:
+      "Price from structure, transformation depth, delivery burden, market fit, IP value, and capacity protection.",
+    deliverable: "Pricing and Revenue Model Brief",
+    gate:
+      "Client can justify price through structure, support, commercial value, and operating cost without inflated claims."
+  },
+  {
+    id: "M8",
+    title: "Category Narrative and Soft Power Sales System",
+    phase: "Market Authority",
+    objective:
+      "Build language that lets the market understand the offer without reducing it to generic coaching, mindset, or wellness work.",
+    deliverable: "Soft Power Sales System",
+    gate:
+      "Client can communicate the offer through precise buyer fit, controlled authority, and responsible conversion language."
+  },
+  {
+    id: "M9",
+    title: "Client Experience and Fulfillment Governance",
+    phase: "Delivery Operations",
+    objective:
+      "Build a delivery system that protects client experience, founder capacity, and method integrity.",
+    deliverable: "Client Experience Operating System",
+    gate:
+      "Client has onboarding, checkpoints, support rules, completion standards, and repeatable delivery controls."
+  },
+  {
+    id: "M10",
+    title: "Licensing Rights and Implementation Architecture",
+    phase: "Licensing Preparation",
+    objective:
+      "Determine whether the method can be licensed, what rights can be granted, and what must remain protected.",
+    deliverable: "Licensing Readiness Brief",
+    gate:
+      "Client can identify what could be licensed, under what restrictions, and what requires professional legal review."
+  },
+  {
+    id: "M11",
+    title: "Risk, Claims, and Professional Review",
+    phase: "Commercial Protection",
+    objective:
+      "Clean up claims, scope, disclaimers, professional review needs, and operational risk before higher-stakes selling or licensing.",
+    deliverable: "Commercial Risk Review Packet",
+    gate:
+      "Client has identified review needs and removed unsupported, unclear, or overreaching claims from the commercial pathway."
+  },
+  {
+    id: "M12",
+    title: "Commercialization Brief and Launch Pathway",
+    phase: "Market Activation",
+    objective:
+      "Leave with a commercialization brief and staged launch path that matches identity, capacity, buyer readiness, and revenue design.",
+    deliverable: "Final IP Commercialization Brief",
+    gate:
+      "Client can proceed with a structured offer, responsible claims, pricing logic, delivery model, and next-step launch plan."
+  }
+];
+
+export const enterpriseIpClientNotes: EnterpriseIpClientNote[] = [
+  {
+    id: "EIP-NOTE-001",
+    moduleId: "M1",
+    title: "Authority Positioning",
+    status: "Shared",
+    updatedAt: "Jun 16",
+    body:
+      "Stay with the distinction between credibility and over-proof. The offer needs clear authority, not excessive explanation. Tighten the language around what you are qualified to govern and what requires outside review."
+  },
+  {
+    id: "EIP-NOTE-002",
+    moduleId: "M4",
+    title: "Framework Encoding Focus",
+    status: "Shared",
+    updatedAt: "Jun 16",
+    body:
+      "The next pass should separate principles, steps, and decision rules. If the method depends on your personal interpretation at every point, it is not yet encoded enough for licensing preparation."
+  },
+  {
+    id: "EIP-NOTE-003",
+    moduleId: "M7",
+    title: "Pricing Review",
+    status: "Draft",
+    updatedAt: "Jun 16",
+    body:
+      "Review pricing against delivery burden, buyer economics, and capacity cost. The number should be defensible through structure and commercial utility, not personal pressure."
   }
 ];
 
