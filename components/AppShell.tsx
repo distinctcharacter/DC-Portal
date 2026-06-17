@@ -7,8 +7,7 @@ const navItems = [
   { href: "/protocols", label: "Protocols" },
   { href: "/resources", label: "Resources" },
   { href: "/downloads", label: "Downloads" },
-  { href: "/practitioner", label: "Practitioner" },
-  { href: "/masterclass", label: "Masterclass" }
+  { href: "/practitioner", label: "Practitioner" }
 ];
 
 type AppShellProps = {

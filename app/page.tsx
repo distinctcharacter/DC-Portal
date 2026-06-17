@@ -81,15 +81,14 @@ export default function DashboardPage() {
         </article>
 
         <article className="placeholder-panel" id="masterclass">
-          <span className="eyebrow">Expansion Layer</span>
-          <h2>Masterclass Series</h2>
+          <span className="eyebrow">Locked Access</span>
+          <h2>Additional Training Access</h2>
           <p>
-            Advanced education lives outside the core protocol ladder, preserving the seriousness
-            of the sequential system while creating space for specialized trainings.
+            This area is not currently available for this account.
           </p>
-          <a className="button secondary" href="/masterclass">
-            View Series
-          </a>
+          <button className="button secondary" type="button" disabled>
+            Access Locked
+          </button>
         </article>
       </section>
     </AppShell>

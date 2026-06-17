@@ -6,30 +6,28 @@ export default function MasterclassPage() {
     <AppShell>
       <section className="content-section route-section">
         <SectionHeader
-          eyebrow="Expansion Layer"
-          title="Masterclass Series"
-          copy="Advanced education lives outside the core protocol ladder. This preserves the seriousness of the sequential system while allowing space for applied trainings and educational expansion."
+          eyebrow="Locked Access"
+          title="Additional Training Access"
+          copy="This area is not currently available for this account."
         />
         <article className="placeholder-panel masterclass-panel">
-          <span className="eyebrow">Expansion Offering Layer</span>
-          <h2>Advanced Application Series</h2>
+          <span className="eyebrow">Access Required</span>
+          <h2>Training Area Locked</h2>
           <p>
-            This area houses masterclasses, expansion trainings, and advanced educational
-            offerings. It is intentionally separated from the core protocol progression so the
-            operating system remains structured and clinically adjacent.
+            Access to this area requires an active purchase or account permission.
           </p>
           <div className="lock-grid">
             <div>
-              <strong>Core Boundary</strong>
-              <span>Not required for protocol completion.</span>
+              <strong>Status</strong>
+              <span>Locked</span>
             </div>
             <div>
-              <strong>Purchase Model</strong>
-              <span>Standalone access or bundled education access.</span>
+              <strong>Access</strong>
+              <span>Requires permission</span>
             </div>
             <div>
-              <strong>Licensing Space</strong>
-              <span>Can later support organization-specific training tracks.</span>
+              <strong>Next Step</strong>
+              <span>Return to your active protocol workspace.</span>
             </div>
           </div>
           <button className="button secondary" type="button" disabled>
