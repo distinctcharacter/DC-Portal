@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { claimPendingPurchases } from "@/lib/auth/purchase-claim";
-import { syncProfile } from "@/lib/auth/profile-sync";
 import { supabase } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
@@ -39,13 +38,6 @@ export default function AuthCallbackPage() {
         }
 
         if (data.session?.user) {
-          const profileResult = await syncProfile(data.session.user);
-
-          if (!profileResult.ok) {
-            setStatus("Authentication confirmed. Portal access could not be refreshed. Please contact support.");
-            return;
-          }
-
           const claimResult = await claimPendingPurchases();
 
           if (claimResult.ok && claimResult.claimedCount > 0) {
@@ -88,7 +80,7 @@ export default function AuthCallbackPage() {
           </span>
         </Link>
         <span className="eyebrow">Portal Authentication</span>
-        <h1>Authentication Check</h1>
+        <h1>Portal Access Confirmation</h1>
         <p>{status}</p>
         <Link className="button" href="/">
           Return to dashboard

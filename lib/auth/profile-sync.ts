@@ -15,33 +15,34 @@ export async function syncProfile(user: User): Promise<ProfileSyncResult> {
     };
   }
 
-  const fullName =
-    typeof user.user_metadata?.full_name === "string"
-      ? user.user_metadata.full_name
-      : typeof user.user_metadata?.name === "string"
-        ? user.user_metadata.name
-        : null;
+  const {
+    data: { session },
+    error: sessionError
+  } = await supabase.auth.getSession();
 
-  const { error } = await supabase.from("profiles").upsert(
-    {
-      id: user.id,
-      email,
-      full_name: fullName
-    },
-    {
-      onConflict: "email_normalized"
-    }
-  );
-
-  if (error) {
+  if (sessionError || !session?.access_token) {
     return {
       ok: false,
-      message: error.message
+      message: sessionError?.message ?? "Authenticated session could not be confirmed."
+    };
+  }
+
+  const response = await fetch("/.netlify/functions/claim-purchases", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`
+    }
+  });
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      message: "Portal access could not be refreshed."
     };
   }
 
   return {
     ok: true,
-    message: "Portal profile synced."
+    message: "Portal access active."
   };
 }

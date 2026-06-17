@@ -56,7 +56,6 @@ function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, 
 export function SupabaseProtocolGrid() {
   const [rows, setRows] = useState<ProtocolRow[]>([]);
   const [accessibleProtocolIds, setAccessibleProtocolIds] = useState<Set<string>>(new Set());
-  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -67,7 +66,6 @@ export function SupabaseProtocolGrid() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        if (mounted) setNotice("Sign in to review your current protocol access.");
         return;
       }
 
@@ -79,17 +77,16 @@ export function SupabaseProtocolGrid() {
       if (!mounted) return;
 
       if (error) {
-        setNotice("Protocol catalog could not load. Refresh this page or contact support.");
         return;
       }
 
       const { data: entitlements, error: entitlementError } = await supabase
         .from("protocol_entitlements")
         .select("entitlement_type, protocol_id, status")
+        .eq("user_id", session.user.id)
         .eq("status", "active");
 
       if (entitlementError) {
-        setNotice("Protocol access could not load. Refresh this page or contact support.");
         setRows(data ?? []);
         return;
       }
@@ -107,7 +104,6 @@ export function SupabaseProtocolGrid() {
           .in("bundle_protocol_id", bundleIds);
 
         if (childError) {
-          setNotice("Bundle access could not be confirmed. Refresh this page or contact support.");
           setRows(data ?? []);
           return;
         }
@@ -127,7 +123,6 @@ export function SupabaseProtocolGrid() {
 
       setAccessibleProtocolIds(nextAccessibleIds);
       setRows(data ?? []);
-      setNotice("");
     }
 
     loadProtocols();
@@ -148,7 +143,6 @@ export function SupabaseProtocolGrid() {
 
   return (
     <>
-      {notice ? <p className="dev-sync-note">{notice}</p> : null}
       <div className="protocol-grid">
         {displayProtocols.map((protocol) => (
           <ProtocolCard protocol={protocol} key={protocol.id} />

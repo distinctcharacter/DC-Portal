@@ -12,17 +12,14 @@ import {
 import { canViewTherapeuticAddenda } from "@/lib/access";
 
 export default function ProtocolPage({
-  params,
-  searchParams
+  params
 }: {
   params: { slug: string };
-  searchParams: { access?: string };
 }) {
   const isSomatic = params.slug === "somatic-baseline";
   const isEnterpriseIp = params.slug === "enterprise-ip-mastermind";
   const role: Role = "client";
-  const canComposeEnterpriseNotes =
-    searchParams.access === "admin" || searchParams.access === "practitioner";
+  const canComposeEnterpriseNotes = false;
   const canViewAddendum = canViewTherapeuticAddenda(role);
   const sbpAddendum = therapeuticAddenda.find((addendum) => addendum.id === "DC-P01-SBP-TA01");
 
@@ -114,7 +111,7 @@ export default function ProtocolPage({
                       <div className="card-topline">
                         <span className="protocol-id">
                           {note.moduleId}
-                          {module ? ` · ${module.title}` : ""}
+                          {module ? ` - ${module.title}` : ""}
                         </span>
                         <span className={`note-status ${note.status.toLowerCase()}`}>{note.status}</span>
                       </div>
@@ -312,7 +309,7 @@ export default function ProtocolPage({
                   <strong>Review Use</strong>
                   <p>{sbpAddendum.reviewUse}</p>
                 </div>
-                <a className="button secondary" href="/practitioner?access=practitioner#therapeutic-addenda">
+                <a className="button secondary" href="/practitioner#therapeutic-addenda">
                   Open Practitioner Addenda Library
                 </a>
               </>

@@ -39,7 +39,6 @@ function mapResourceRow(row: ResourceAssetRow, existing?: Resource): Resource {
 
 export function SupabaseResourceGrid() {
   const [rows, setRows] = useState<ResourceAssetRow[]>([]);
-  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -50,7 +49,6 @@ export function SupabaseResourceGrid() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        if (mounted) setNotice("Sign in to review available resource access.");
         return;
       }
 
@@ -62,17 +60,14 @@ export function SupabaseResourceGrid() {
       if (!mounted) return;
 
       if (error) {
-        setNotice("Resource library could not load. Refresh this page or contact support.");
         return;
       }
 
       if (!data?.length) {
-        setNotice("");
         return;
       }
 
       setRows(data);
-      setNotice("");
     }
 
     loadResources();
@@ -93,7 +88,6 @@ export function SupabaseResourceGrid() {
 
   return (
     <>
-      {notice ? <p className="dev-sync-note">{notice}</p> : null}
       <div className="resource-grid">
         {displayResources.map((resource) => (
           <ResourceCard resource={resource} key={resource.id} />
