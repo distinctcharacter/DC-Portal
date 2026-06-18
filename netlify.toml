@@ -5,6 +5,13 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
+  included_files = ["protected-resources/resources/*.pdf"]
+
+[[redirects]]
+  from = "/resources/:file"
+  to = "/.netlify/functions/protected-resource?file=:file"
+  status = 200
+  force = true
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"

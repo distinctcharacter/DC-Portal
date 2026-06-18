@@ -1,5 +1,6 @@
 import { mockUser, type Resource, type Role } from "@/data/mock";
 import { canViewPractitionerLayer } from "@/lib/access";
+import { ProtectedResourceButton } from "@/components/ProtectedResourceButton";
 
 export function ResourceCard({
   resource,
@@ -33,9 +34,11 @@ export function ResourceCard({
         </div>
       </dl>
       {resource.href && !isLocked ? (
-        <a className="button secondary card-action" href={resource.href} target="_blank" rel="noreferrer">
-          Open Resource
-        </a>
+        <ProtectedResourceButton
+          className="button secondary card-action"
+          href={resource.href}
+          label="Open Resource"
+        />
       ) : (
         <button className="button secondary card-action" type="button" disabled>
           Access Locked

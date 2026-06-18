@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ProgressTracker } from "@/components/ProgressTracker";
+import { ProtectedResourceButton } from "@/components/ProtectedResourceButton";
 import { SectionHeader } from "@/components/SectionHeader";
 import {
   enterpriseIpClientNotes,
@@ -183,9 +184,10 @@ export default function ProtocolPage({
                 The resource suite supports the course modules with assessments, matrices,
                 calculators, roadmap planning, and commercialization briefs.
               </p>
-              <a className="button secondary" href="/resources/enterprise-ip-mastermind-resource-suite.pdf">
-                Open Resource Suite
-              </a>
+              <ProtectedResourceButton
+                href="/resources/enterprise-ip-mastermind-resource-suite.pdf"
+                label="Open Resource Suite"
+              />
             </article>
             <article className="side-card">
               <span className="eyebrow">Advisor Layer</span>

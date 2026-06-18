@@ -1,4 +1,5 @@
 import type { DownloadAsset } from "@/data/mock";
+import { ProtectedResourceButton } from "@/components/ProtectedResourceButton";
 
 export function DownloadTable({ assets }: { assets: DownloadAsset[] }) {
   return (
@@ -21,9 +22,7 @@ export function DownloadTable({ assets }: { assets: DownloadAsset[] }) {
           <span className={`download-status ${asset.status.toLowerCase()}`}>{asset.status}</span>
           <span>
             {asset.href && asset.status !== "Locked" ? (
-              <a className="table-link" href={asset.href} target="_blank" rel="noreferrer">
-                Open
-              </a>
+              <ProtectedResourceButton className="table-link button-link" href={asset.href} label="Open" />
             ) : (
               <span className="table-muted">Locked</span>
             )}

@@ -878,6 +878,26 @@ li.locked .step-dot {
   font-weight: 700;
 }
 
+.button-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  min-height: auto;
+}
+
+.button-link:hover:not(:disabled) {
+  transform: none;
+  color: var(--gold-2);
+}
+
+.resource-button-message {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted-white);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .table-muted {
   color: var(--slate-soft);
   font-weight: 700;
