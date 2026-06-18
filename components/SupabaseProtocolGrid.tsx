@@ -16,19 +16,28 @@ type ProtocolRow = {
   description: string | null;
 };
 
-type EntitlementRow = {
-  entitlement_type: "protocol" | "bundle" | string;
-  protocol_id: string | null;
-  status: string;
+type ProtocolProgressRow = {
+  protocol_id: string;
+  completion_percent: number;
+  current_phase_key: string | null;
+  last_activity_at: string | null;
 };
 
-type BundleProtocolRow = {
-  bundle_protocol_id: string;
-  child_protocol_id: string;
+type PortalCatalogPayload = {
+  protocols?: ProtocolRow[];
+  accessibleProtocolIds?: string[];
+  progress?: ProtocolProgressRow[];
 };
 
-function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, existing?: Protocol): Protocol {
+function mergeProtocolRow(
+  row: ProtocolRow,
+  accessibleProtocolIds: Set<string>,
+  progressByProtocol: Map<string, ProtocolProgressRow>,
+  existing?: Protocol
+): Protocol {
   const hasAccess = accessibleProtocolIds.has(row.id);
+  const progress = progressByProtocol.get(row.id);
+  const completion = progress?.completion_percent ?? existing?.completion ?? 0;
   const defaultStatus = row.status === "future" ? "future" : hasAccess ? "available" : "locked";
 
   return {
@@ -43,9 +52,11 @@ function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, 
         : hasAccess && existing?.status === "completed"
           ? "completed"
           : defaultStatus,
-    completion: existing?.completion ?? 0,
+    completion,
     nextAction: hasAccess
-      ? existing?.nextAction ?? "Access active. Continue protocol work."
+      ? progress?.current_phase_key
+        ? `Continue ${progress.current_phase_key.replaceAll("-", " ")}.`
+        : existing?.nextAction ?? "Access active. Continue protocol work."
       : existing?.nextAction ?? "Purchase or prerequisite completion required.",
     description: row.description ?? existing?.description ?? "Protocol access is available through your account record.",
     requirements: existing?.requirements,
@@ -56,6 +67,7 @@ function mergeProtocolRow(row: ProtocolRow, accessibleProtocolIds: Set<string>, 
 export function SupabaseProtocolGrid() {
   const [rows, setRows] = useState<ProtocolRow[]>([]);
   const [accessibleProtocolIds, setAccessibleProtocolIds] = useState<Set<string>>(new Set());
+  const [progressRows, setProgressRows] = useState<ProtocolProgressRow[]>([]);
 
   useEffect(() => {
     let mounted = true;
@@ -69,60 +81,21 @@ export function SupabaseProtocolGrid() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("protocols")
-        .select("id, slug, title, phase_label, status, sequence_order, parent_protocol_id, description")
-        .order("sequence_order", { ascending: true });
-
-      if (!mounted) return;
-
-      if (error) {
-        return;
-      }
-
-      const { data: entitlements, error: entitlementError } = await supabase
-        .from("protocol_entitlements")
-        .select("entitlement_type, protocol_id, status")
-        .eq("user_id", session.user.id)
-        .eq("status", "active");
-
-      if (entitlementError) {
-        setRows(data ?? []);
-        return;
-      }
-
-      const bundleIds = ((entitlements ?? []) as EntitlementRow[])
-        .filter((entitlement) => entitlement.entitlement_type === "bundle" && entitlement.protocol_id)
-        .map((entitlement) => entitlement.protocol_id as string);
-
-      let bundleChildren: BundleProtocolRow[] = [];
-
-      if (bundleIds.length) {
-        const { data: childRows, error: childError } = await supabase
-          .from("bundle_protocols")
-          .select("bundle_protocol_id, child_protocol_id")
-          .in("bundle_protocol_id", bundleIds);
-
-        if (childError) {
-          setRows(data ?? []);
-          return;
+      const response = await fetch("/.netlify/functions/portal-catalog", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
+      });
 
-        bundleChildren = (childRows ?? []) as BundleProtocolRow[];
+      if (!mounted || !response.ok) {
+        return;
       }
 
-      const nextAccessibleIds = new Set<string>();
+      const payload = (await response.json()) as PortalCatalogPayload;
 
-      for (const entitlement of (entitlements ?? []) as EntitlementRow[]) {
-        if (entitlement.protocol_id) nextAccessibleIds.add(entitlement.protocol_id);
-      }
-
-      for (const child of bundleChildren) {
-        nextAccessibleIds.add(child.child_protocol_id);
-      }
-
-      setAccessibleProtocolIds(nextAccessibleIds);
-      setRows(data ?? []);
+      setAccessibleProtocolIds(new Set(payload.accessibleProtocolIds ?? []));
+      setProgressRows(payload.progress ?? []);
+      setRows(payload.protocols ?? []);
     }
 
     loadProtocols();
@@ -134,12 +107,13 @@ export function SupabaseProtocolGrid() {
 
   const displayProtocols = useMemo(() => {
     if (!rows.length) return mockProtocols;
+    const progressByProtocol = new Map(progressRows.map((row) => [row.protocol_id, row]));
 
     return rows.map((row) => {
       const existing = mockProtocols.find((protocol) => protocol.id === row.id);
-      return mergeProtocolRow(row, accessibleProtocolIds, existing);
+      return mergeProtocolRow(row, accessibleProtocolIds, progressByProtocol, existing);
     });
-  }, [accessibleProtocolIds, rows]);
+  }, [accessibleProtocolIds, progressRows, rows]);
 
   return (
     <>

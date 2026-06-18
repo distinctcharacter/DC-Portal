@@ -15,6 +15,10 @@ type ResourceAssetRow = {
   practitioner_only: boolean;
 };
 
+type PortalCatalogPayload = {
+  resources?: ResourceAssetRow[];
+};
+
 function titleCase(value: string) {
   return value
     .split("_")
@@ -52,22 +56,23 @@ export function SupabaseResourceGrid() {
         return;
       }
 
-      const { data, error } = await supabase
-        .from("resource_assets")
-        .select("id, title, asset_type, protocol_id, public_path, audience, practitioner_only")
-        .order("created_at", { ascending: true });
+      const response = await fetch("/.netlify/functions/portal-catalog", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
 
-      if (!mounted) return;
-
-      if (error) {
+      if (!mounted || !response.ok) {
         return;
       }
 
-      if (!data?.length) {
+      const payload = (await response.json()) as PortalCatalogPayload;
+
+      if (!payload.resources?.length) {
         return;
       }
 
-      setRows(data);
+      setRows(payload.resources);
     }
 
     loadResources();
