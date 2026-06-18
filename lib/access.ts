@@ -13,15 +13,15 @@ export function accessLabel(status: ProtocolStatus) {
 }
 
 export function canViewPractitionerLayer(role: Role) {
-  return role === "practitioner" || role === "admin" || role === "license_holder";
+  return role === "practitioner" || role === "admin";
 }
 
 export function canViewTherapeuticAddenda(role: Role) {
-  return role === "practitioner" || role === "admin" || role === "license_holder";
+  return role === "practitioner" || role === "admin";
 }
 
 export function canReviewClients(role: Role) {
-  return role === "practitioner" || role === "admin" || role === "license_holder";
+  return role === "practitioner" || role === "admin";
 }
 
 export function canManagePractitionerNotes(role: Role) {

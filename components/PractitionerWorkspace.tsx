@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   practitionerClients,
@@ -13,12 +15,15 @@ import {
   canViewTherapeuticAddenda,
   practitionerAccessReason
 } from "@/lib/access";
+import { usePortalAccess } from "@/lib/auth/portal-access";
 import { ResourceCard } from "@/components/ResourceCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatCard } from "@/components/StatCard";
 
 export function PractitionerWorkspace({ role }: { role: Role }) {
-  const hasPractitionerAccess = canViewPractitionerLayer(role);
+  const access = usePortalAccess(role);
+  const effectiveRole = access.role;
+  const hasPractitionerAccess = !access.loading && canViewPractitionerLayer(effectiveRole);
   const practitionerResources = resources.filter((resource) => resource.access === "Practitioner");
 
   if (!hasPractitionerAccess) {
@@ -35,7 +40,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <div className="lock-grid">
             <div>
               <strong>Practitioner Access</strong>
-              <span>{practitionerAccessReason(role)}</span>
+              <span>{access.loading ? "Confirming practitioner access." : practitionerAccessReason(effectiveRole)}</span>
             </div>
             <div>
               <strong>Practitioner Tools</strong>
@@ -79,19 +84,19 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
         <div className="access-panel">
           <span className="eyebrow">Practitioner Workspace</span>
           <strong>Practitioner access active</strong>
-          <p>{practitionerAccessReason(role)}</p>
+          <p>{practitionerAccessReason(effectiveRole)}</p>
           <dl>
             <div>
               <dt>Role</dt>
-              <dd>{role}</dd>
+              <dd>{effectiveRole}</dd>
             </div>
             <div>
               <dt>Client Review</dt>
-              <dd>{canReviewClients(role) ? "Enabled" : "Disabled"}</dd>
+              <dd>{canReviewClients(effectiveRole) ? "Enabled" : "Disabled"}</dd>
             </div>
             <div>
               <dt>Notes Workflow</dt>
-              <dd>{canManagePractitionerNotes(role) ? "Enabled" : "Read Only"}</dd>
+              <dd>{canManagePractitionerNotes(effectiveRole) ? "Enabled" : "Read Only"}</dd>
             </div>
           </dl>
         </div>
@@ -146,7 +151,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           copy="Addenda are visible only when practitioner access is active. They support pacing, safety boundaries, observation, and referral awareness."
         />
         <div className="addenda-list">
-          {canViewTherapeuticAddenda(role) &&
+          {canViewTherapeuticAddenda(effectiveRole) &&
             therapeuticAddenda.map((addendum) => (
               <article className="addendum-card" key={addendum.id}>
                 <span className="protocol-id">{addendum.id}</span>
@@ -222,7 +227,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
         />
         <div className="resource-grid">
           {practitionerResources.map((resource) => (
-            <ResourceCard resource={resource} role={role} key={resource.id} />
+            <ResourceCard resource={resource} role={effectiveRole} key={resource.id} />
           ))}
         </div>
       </section>

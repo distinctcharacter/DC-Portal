@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { mockUser, type Role } from "@/data/mock";
 import { AuthStatus } from "@/components/AuthStatus";
+import { PortalSessionCard } from "@/components/PortalSessionCard";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
@@ -35,11 +36,7 @@ export function AppShell({ children, sessionRole = mockUser.role }: AppShellProp
             </Link>
           ))}
         </nav>
-        <div className="role-card">
-          <span className="eyebrow">Portal Session</span>
-          <strong>Distinct Character Access</strong>
-          <span>Current access: {sessionRole}</span>
-        </div>
+        <PortalSessionCard fallbackRole={sessionRole} />
       </aside>
       <div className="main-frame">
         <header className="topbar">

@@ -73,15 +73,14 @@ async function streamToBuffer(stream: NodeJS.ReadableStream) {
   return Buffer.concat(chunks);
 }
 
-async function userHasPrivilegedRole(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+async function userRoles(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
   const { data, error } = await admin
     .from("user_role_assignments")
     .select("role")
-    .eq("user_id", userId)
-    .in("role", ["admin", "practitioner", "license_holder"]);
+    .eq("user_id", userId);
 
   if (error) throw error;
-  return Boolean(data?.length);
+  return (data ?? []).map((row) => row.role as string);
 }
 
 async function userHasProtocolAccess(
@@ -130,17 +129,20 @@ export async function handler(event: FunctionEvent) {
       return jsonResponse(401, { error: "Login required." });
     }
 
-    const hasPrivilegedRole = await userHasPrivilegedRole(admin, data.user.id);
+    const roles = await userRoles(admin, data.user.id);
+    const isAdmin = roles.includes("admin");
+    const isPractitioner = roles.includes("practitioner");
     const hasProtocolAccess = rule.protocolIds
       ? await userHasProtocolAccess(admin, data.user.id, rule.protocolIds)
       : false;
 
     const allowed =
-      hasPrivilegedRole ||
+      isAdmin ||
       Boolean(rule.authenticated && data.user.email_confirmed_at) ||
-      Boolean(rule.protocolIds && hasProtocolAccess);
+      Boolean(rule.protocolIds && hasProtocolAccess) ||
+      Boolean(rule.practitionerOnly && isPractitioner);
 
-    if (!allowed || (rule.practitionerOnly && !hasPrivilegedRole)) {
+    if (!allowed) {
       return jsonResponse(403, { error: "This resource is not available for this account." });
     }
 
