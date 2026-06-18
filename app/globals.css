@@ -1115,6 +1115,24 @@ li.locked .step-dot {
   gap: 16px;
 }
 
+.empty-state-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(9, 9, 11, 0.28);
+  padding: 22px;
+}
+
+.empty-state-panel h3 {
+  color: var(--warm-white);
+  margin: 0 0 8px;
+}
+
+.empty-state-panel p {
+  color: var(--muted-white);
+  line-height: 1.6;
+  margin: 0;
+}
+
 .client-review-card,
 .addendum-card,
 .note-card {

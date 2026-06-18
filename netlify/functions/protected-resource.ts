@@ -1,5 +1,9 @@
 import { createReadStream, existsSync } from "fs";
 import { basename, join, resolve } from "path";
+import {
+  userHasPractitionerLayerAccess,
+  userRoles
+} from "./_shared/practitioner-access";
 import { getSupabaseAdmin } from "./_shared/supabase-admin";
 
 type FunctionEvent = {
@@ -73,16 +77,6 @@ async function streamToBuffer(stream: NodeJS.ReadableStream) {
   return Buffer.concat(chunks);
 }
 
-async function userRoles(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data, error } = await admin
-    .from("user_role_assignments")
-    .select("role")
-    .eq("user_id", userId);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => row.role as string);
-}
-
 async function userHasProtocolAccess(
   admin: ReturnType<typeof getSupabaseAdmin>,
   userId: string,
@@ -100,41 +94,6 @@ async function userHasProtocolAccess(
 
   if (error) throw error;
   return Boolean(data?.length);
-}
-
-async function userHasPractitionerLayerAccess(
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  userId: string,
-  roles: string[]
-) {
-  if (roles.includes("admin")) return true;
-  if (!roles.includes("practitioner")) return false;
-
-  const { data: entitlementRows, error: entitlementError } = await admin
-    .from("protocol_entitlements")
-    .select("id, expires_at")
-    .eq("user_id", userId)
-    .eq("entitlement_type", "practitioner_layer")
-    .eq("status", "active")
-    .limit(1);
-
-  if (entitlementError) throw entitlementError;
-
-  const hasActiveEntitlement = (entitlementRows ?? []).some(
-    (row) => !row.expires_at || new Date(row.expires_at as string).getTime() > Date.now()
-  );
-
-  if (!hasActiveEntitlement) return false;
-
-  const { data: profileRows, error: profileError } = await admin
-    .from("practitioner_profiles")
-    .select("user_id")
-    .eq("user_id", userId)
-    .eq("access_status", "active")
-    .limit(1);
-
-  if (profileError) throw profileError;
-  return Boolean(profileRows?.length);
 }
 
 export async function handler(event: FunctionEvent) {
