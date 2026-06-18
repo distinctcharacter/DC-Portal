@@ -1240,6 +1240,36 @@ li.locked .step-dot {
   resize: vertical;
 }
 
+.practice-log-form textarea {
+  min-height: 120px;
+}
+
+.form-grid-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-message {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 0;
+  padding: 12px 14px;
+  line-height: 1.5;
+}
+
+.form-message.success {
+  background: rgba(109, 143, 122, 0.16);
+  border-color: rgba(109, 143, 122, 0.52);
+  color: var(--warm-white);
+}
+
+.form-message.error {
+  background: rgba(164, 90, 82, 0.14);
+  border-color: rgba(164, 90, 82, 0.56);
+  color: var(--warm-white);
+}
+
 .asset-strip {
   display: flex;
   gap: 10px;
@@ -1457,6 +1487,7 @@ li.locked .step-dot {
   .addenda-list,
   .lock-grid,
   .two-column-section,
+  .form-grid-two,
   .zone-grid {
     grid-template-columns: 1fr;
   }

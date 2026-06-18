@@ -3,6 +3,7 @@ import { AppShell } from "@/components/AppShell";
 import { ProgressTracker } from "@/components/ProgressTracker";
 import { ProtectedResourceButton } from "@/components/ProtectedResourceButton";
 import { SectionHeader } from "@/components/SectionHeader";
+import { SomaticResetLog } from "@/components/SomaticResetLog";
 import {
   enterpriseIpClientNotes,
   enterpriseIpModules,
@@ -266,30 +267,7 @@ export default function ProtocolPage({
                 enough capacity for the next governed action.
               </p>
             </div>
-            <div className="mock-form">
-              <label>
-                Trigger or context
-                <input value="High-stakes message received before regulation" readOnly />
-              </label>
-              <label>
-                Protocol selected
-                <select defaultValue="physiological-sigh">
-                  <option value="physiological-sigh">Physiological Sigh</option>
-                  <option value="humming">Humming / Vagal Vibration</option>
-                  <option value="sensory">Sensory Anchoring</option>
-                </select>
-              </label>
-              <label>
-                Resulting shift
-                <textarea
-                  value="Activation reduced from urgent reaction to workable response. Next step: wait ten minutes before replying."
-                  readOnly
-                />
-              </label>
-              <button className="button primary" type="button">
-                Save Log
-              </button>
-            </div>
+            <SomaticResetLog />
           </section>
 
           <section className="reader-section">
