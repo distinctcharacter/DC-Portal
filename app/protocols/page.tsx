@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/AppShell";
+import { PortalProtocolGrid } from "@/components/PortalProtocolGrid";
 import { SectionHeader } from "@/components/SectionHeader";
-import { SupabaseProtocolGrid } from "@/components/SupabaseProtocolGrid";
 
 export default function ProtocolsPage() {
   return (
@@ -11,7 +11,7 @@ export default function ProtocolsPage() {
           title="Sequential Access Model"
           copy="Your available protocols appear alongside the next work required for progression."
         />
-        <SupabaseProtocolGrid />
+        <PortalProtocolGrid />
       </section>
     </AppShell>
   );

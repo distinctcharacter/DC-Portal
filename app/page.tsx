@@ -3,8 +3,8 @@ import { DownloadTable } from "@/components/DownloadTable";
 import { ProgressTracker } from "@/components/ProgressTracker";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatCard } from "@/components/StatCard";
-import { SupabaseProtocolGrid } from "@/components/SupabaseProtocolGrid";
-import { SupabaseResourceGrid } from "@/components/SupabaseResourceGrid";
+import { PortalProtocolGrid } from "@/components/PortalProtocolGrid";
+import { PortalResourceGrid } from "@/components/PortalResourceGrid";
 import { downloads } from "@/data/mock";
 
 export default function DashboardPage() {
@@ -43,7 +43,7 @@ export default function DashboardPage() {
           title="Sequential Access Model"
           copy="Your available protocols appear alongside the next work required for progression."
         />
-        <SupabaseProtocolGrid />
+        <PortalProtocolGrid />
       </section>
 
       <section className="content-section" id="resources">
@@ -52,7 +52,7 @@ export default function DashboardPage() {
           title="Support Architecture"
           copy="Foundation resources and protocol companions remain organized, searchable, and easy to return to."
         />
-        <SupabaseResourceGrid />
+        <PortalResourceGrid />
       </section>
 
       <section className="content-section" id="downloads">

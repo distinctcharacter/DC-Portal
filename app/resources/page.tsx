@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/AppShell";
+import { PortalResourceGrid } from "@/components/PortalResourceGrid";
 import { SectionHeader } from "@/components/SectionHeader";
-import { SupabaseResourceGrid } from "@/components/SupabaseResourceGrid";
 
 export default function ResourcesPage() {
   return (
@@ -11,7 +11,7 @@ export default function ResourcesPage() {
           title="Support Architecture"
           copy="Foundation resources and protocol companions remain organized, searchable, and easy to return to."
         />
-        <SupabaseResourceGrid />
+        <PortalResourceGrid />
       </section>
     </AppShell>
   );
