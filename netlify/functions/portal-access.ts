@@ -26,6 +26,10 @@ function primaryRole(roles: string[]) {
   return ROLE_PRIORITY.find((role) => roles.includes(role)) ?? "client";
 }
 
+function entitlementIsActive(row: { expires_at: string | null }) {
+  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
+}
+
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "GET") {
     return jsonResponse(405, { error: "Method not allowed." });
@@ -57,11 +61,58 @@ export async function handler(event: FunctionEvent) {
 
     const { data: entitlementRows, error: entitlementError } = await admin
       .from("protocol_entitlements")
-      .select("entitlement_type, protocol_id")
+      .select("entitlement_type, protocol_id, expires_at")
       .eq("user_id", data.user.id)
       .eq("status", "active");
 
     if (entitlementError) throw entitlementError;
+
+    const isAdmin = roles.includes("admin");
+    const hasPractitionerRole = roles.includes("practitioner");
+    const hasLicenseHolderRole = roles.includes("license_holder");
+    const activeEntitlements = (entitlementRows ?? []).filter((row) =>
+      entitlementIsActive(row as { expires_at: string | null })
+    );
+    const hasPractitionerEntitlement = activeEntitlements.some(
+      (row) => row.entitlement_type === "practitioner_layer"
+    );
+    const hasLicenseSeatEntitlement = activeEntitlements.some(
+      (row) => row.entitlement_type === "license_seat"
+    );
+
+    const { data: practitionerProfileRows, error: practitionerProfileError } = await admin
+      .from("practitioner_profiles")
+      .select("access_status")
+      .eq("user_id", data.user.id)
+      .eq("access_status", "active")
+      .limit(1);
+
+    if (practitionerProfileError) throw practitionerProfileError;
+
+    const { data: licenseRows, error: licenseError } = await admin
+      .from("license_memberships")
+      .select("status, license_organizations!inner(status, expires_at)")
+      .eq("user_id", data.user.id)
+      .eq("status", "active");
+
+    if (licenseError) throw licenseError;
+
+    const hasActiveLicenseMembership = (licenseRows ?? []).some((row) => {
+      const organization = Array.isArray(row.license_organizations)
+        ? row.license_organizations[0]
+        : row.license_organizations;
+
+      if (!organization || organization.status !== "active") return false;
+      return !organization.expires_at || new Date(organization.expires_at).getTime() > Date.now();
+    });
+
+    const canAccessPractitionerLayer =
+      isAdmin ||
+      (hasPractitionerRole && hasPractitionerEntitlement && Boolean(practitionerProfileRows?.length));
+
+    const canAccessLicenseLayer =
+      isAdmin ||
+      (hasLicenseHolderRole && (hasLicenseSeatEntitlement || hasActiveLicenseMembership));
 
     return jsonResponse(200, {
       ok: true,
@@ -69,7 +120,9 @@ export async function handler(event: FunctionEvent) {
       roles,
       protocolIds: (entitlementRows ?? [])
         .map((row) => row.protocol_id as string | null)
-        .filter(Boolean)
+        .filter(Boolean),
+      canAccessPractitionerLayer,
+      canAccessLicenseLayer
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Portal access check failed.";

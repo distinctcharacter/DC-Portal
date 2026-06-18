@@ -9,6 +9,8 @@ type PortalAccessState = {
   role: Role;
   roles: Role[];
   protocolIds: string[];
+  canAccessPractitionerLayer: boolean;
+  canAccessLicenseLayer: boolean;
 };
 
 type PortalAccessPayload = {
@@ -16,6 +18,8 @@ type PortalAccessPayload = {
   role?: Role;
   roles?: Role[];
   protocolIds?: string[];
+  canAccessPractitionerLayer?: boolean;
+  canAccessLicenseLayer?: boolean;
 };
 
 export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessState {
@@ -23,7 +27,9 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
     loading: true,
     role: fallbackRole,
     roles: [fallbackRole],
-    protocolIds: []
+    protocolIds: [],
+    canAccessPractitionerLayer: false,
+    canAccessLicenseLayer: false
   });
 
   useEffect(() => {
@@ -40,7 +46,9 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
             loading: false,
             role: fallbackRole,
             roles: [fallbackRole],
-            protocolIds: []
+            protocolIds: [],
+            canAccessPractitionerLayer: false,
+            canAccessLicenseLayer: false
           });
         }
         return;
@@ -58,7 +66,9 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
             loading: false,
             role: fallbackRole,
             roles: [fallbackRole],
-            protocolIds: []
+            protocolIds: [],
+            canAccessPractitionerLayer: false,
+            canAccessLicenseLayer: false
           });
         }
         return;
@@ -71,7 +81,9 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
           loading: false,
           role: payload.role ?? fallbackRole,
           roles: payload.roles?.length ? payload.roles : [payload.role ?? fallbackRole],
-          protocolIds: payload.protocolIds ?? []
+          protocolIds: payload.protocolIds ?? [],
+          canAccessPractitionerLayer: Boolean(payload.canAccessPractitionerLayer),
+          canAccessLicenseLayer: Boolean(payload.canAccessLicenseLayer)
         });
       }
     }

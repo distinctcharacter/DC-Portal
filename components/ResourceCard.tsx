@@ -1,7 +1,6 @@
 "use client";
 
 import { mockUser, type Resource, type Role } from "@/data/mock";
-import { canViewPractitionerLayer } from "@/lib/access";
 import { usePortalAccess } from "@/lib/auth/portal-access";
 import { ProtectedResourceButton } from "@/components/ProtectedResourceButton";
 
@@ -15,7 +14,7 @@ export function ResourceCard({
   const access = usePortalAccess(role);
   const effectiveRole = access.role;
   const isPractitionerOnly = resource.access === "Practitioner";
-  const isLocked = isPractitionerOnly && !canViewPractitionerLayer(effectiveRole);
+  const isLocked = isPractitionerOnly && !access.canAccessPractitionerLayer;
 
   return (
     <article className={`resource-card ${isLocked ? "is-locked" : ""}`}>

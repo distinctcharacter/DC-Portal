@@ -102,6 +102,41 @@ async function userHasProtocolAccess(
   return Boolean(data?.length);
 }
 
+async function userHasPractitionerLayerAccess(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  userId: string,
+  roles: string[]
+) {
+  if (roles.includes("admin")) return true;
+  if (!roles.includes("practitioner")) return false;
+
+  const { data: entitlementRows, error: entitlementError } = await admin
+    .from("protocol_entitlements")
+    .select("id, expires_at")
+    .eq("user_id", userId)
+    .eq("entitlement_type", "practitioner_layer")
+    .eq("status", "active")
+    .limit(1);
+
+  if (entitlementError) throw entitlementError;
+
+  const hasActiveEntitlement = (entitlementRows ?? []).some(
+    (row) => !row.expires_at || new Date(row.expires_at as string).getTime() > Date.now()
+  );
+
+  if (!hasActiveEntitlement) return false;
+
+  const { data: profileRows, error: profileError } = await admin
+    .from("practitioner_profiles")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("access_status", "active")
+    .limit(1);
+
+  if (profileError) throw profileError;
+  return Boolean(profileRows?.length);
+}
+
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "GET") {
     return jsonResponse(405, { error: "Method not allowed." });
@@ -131,7 +166,9 @@ export async function handler(event: FunctionEvent) {
 
     const roles = await userRoles(admin, data.user.id);
     const isAdmin = roles.includes("admin");
-    const isPractitioner = roles.includes("practitioner");
+    const hasPractitionerLayerAccess = rule.practitionerOnly
+      ? await userHasPractitionerLayerAccess(admin, data.user.id, roles)
+      : false;
     const hasProtocolAccess = rule.protocolIds
       ? await userHasProtocolAccess(admin, data.user.id, rule.protocolIds)
       : false;
@@ -140,7 +177,7 @@ export async function handler(event: FunctionEvent) {
       isAdmin ||
       Boolean(rule.authenticated && data.user.email_confirmed_at) ||
       Boolean(rule.protocolIds && hasProtocolAccess) ||
-      Boolean(rule.practitionerOnly && isPractitioner);
+      Boolean(rule.practitionerOnly && hasPractitionerLayerAccess);
 
     if (!allowed) {
       return jsonResponse(403, { error: "This resource is not available for this account." });

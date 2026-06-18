@@ -23,7 +23,7 @@ import { StatCard } from "@/components/StatCard";
 export function PractitionerWorkspace({ role }: { role: Role }) {
   const access = usePortalAccess(role);
   const effectiveRole = access.role;
-  const hasPractitionerAccess = !access.loading && canViewPractitionerLayer(effectiveRole);
+  const hasPractitionerAccess = !access.loading && access.canAccessPractitionerLayer;
   const practitionerResources = resources.filter((resource) => resource.access === "Practitioner");
 
   if (!hasPractitionerAccess) {
