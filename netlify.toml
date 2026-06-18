@@ -8,8 +8,8 @@
   included_files = ["protected-resources/resources/*.pdf"]
 
 [[redirects]]
-  from = "/resources/:file"
-  to = "/.netlify/functions/protected-resource?file=:file"
+  from = "/resources/*"
+  to = "/.netlify/functions/protected-resource?file=:splat"
   status = 200
   force = true
 

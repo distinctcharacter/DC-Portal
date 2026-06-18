@@ -400,6 +400,47 @@ main {
   border-color: rgba(202, 169, 95, 0.55);
 }
 
+.purchase-complete-page {
+  grid-template-columns: minmax(0, 0.95fr) minmax(340px, 480px);
+}
+
+.purchase-complete-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.purchase-complete-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  max-width: 760px;
+  margin-top: 12px;
+}
+
+.purchase-complete-steps div {
+  border: 1px solid rgba(191, 164, 106, 0.24);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(191, 164, 106, 0.1), rgba(21, 19, 26, 0.72));
+  padding: 14px;
+}
+
+.purchase-complete-steps strong,
+.purchase-complete-steps span {
+  display: block;
+}
+
+.purchase-complete-steps strong {
+  color: var(--gold);
+  font-size: 22px;
+}
+
+.purchase-complete-steps span {
+  color: var(--muted-white);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
 .auth-tabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1388,6 +1429,10 @@ li.locked .step-dot {
   .auth-page {
     grid-template-columns: 1fr;
     padding: 18px;
+  }
+
+  .purchase-complete-steps {
+    grid-template-columns: 1fr;
   }
 
   .auth-hero h1 {
