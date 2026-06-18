@@ -597,6 +597,63 @@ main {
   border-color: rgba(127, 154, 130, 0.52);
 }
 
+.activity-panel {
+  border: 1px solid rgba(196, 188, 174, 0.14);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(180deg, var(--inner-line), transparent 28px),
+    linear-gradient(135deg, rgba(28, 24, 34, 0.92), rgba(12, 11, 16, 0.94));
+  padding: 22px;
+}
+
+.section-header.compact {
+  margin-bottom: 14px;
+}
+
+.section-header.compact h2 {
+  font-size: 24px;
+}
+
+.activity-list {
+  display: grid;
+  gap: 10px;
+}
+
+.activity-item {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(9, 9, 11, 0.36);
+  padding: 16px;
+}
+
+.activity-item div {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.activity-item strong {
+  color: var(--warm-white);
+}
+
+.activity-item small,
+.activity-item span,
+.activity-empty {
+  color: var(--muted-white);
+}
+
+.activity-item p {
+  color: var(--warm-white);
+  line-height: 1.55;
+  margin: 10px 0;
+}
+
+.activity-item span {
+  display: inline-flex;
+  font-size: 13px;
+}
+
 .content-section,
 .two-column-section,
 .protocol-layout {

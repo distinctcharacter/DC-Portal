@@ -86,6 +86,7 @@ export async function handler(event: FunctionEvent) {
       protocolsResult,
       resourcesResult,
       progressResult,
+      practiceLogsResult,
       accessIds
     ] = await Promise.all([
       admin
@@ -101,6 +102,12 @@ export async function handler(event: FunctionEvent) {
         .from("protocol_progress")
         .select("protocol_id, completion_percent, current_phase_key, last_activity_at")
         .eq("user_id", data.user.id),
+      admin
+        .from("practice_logs")
+        .select("id, protocol_id, practice_key, state_before, state_after, context_note, created_at")
+        .eq("user_id", data.user.id)
+        .order("created_at", { ascending: false })
+        .limit(5),
       expandedProtocolAccess(admin, data.user.id)
     ]);
 
@@ -112,6 +119,7 @@ export async function handler(event: FunctionEvent) {
       protocols: protocolsResult.data ?? [],
       resources: resourcesResult.data ?? [],
       progress: progressResult.error ? [] : progressResult.data ?? [],
+      practiceLogs: practiceLogsResult.error ? [] : practiceLogsResult.data ?? [],
       accessibleProtocolIds: accessIds
     });
   } catch (error) {

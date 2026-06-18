@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { StatCard } from "@/components/StatCard";
 import { PortalProtocolGrid } from "@/components/PortalProtocolGrid";
 import { PortalResourceGrid } from "@/components/PortalResourceGrid";
+import { RecentPracticeActivity } from "@/components/RecentPracticeActivity";
 import { downloads } from "@/data/mock";
 
 export default function DashboardPage() {
@@ -35,6 +36,10 @@ export default function DashboardPage() {
         <StatCard label="Progress" value="42%" detail="Exit assessment locked until all gates complete" tone="green" />
         <StatCard label="Current State" value="Zone Check Due" detail="Log one regulation practice today" tone="blue" />
         <StatCard label="Resources" value="9 Available" detail="Foundation and SBP resources unlocked" />
+      </section>
+
+      <section className="content-section">
+        <RecentPracticeActivity />
       </section>
 
       <section className="content-section" id="protocols">

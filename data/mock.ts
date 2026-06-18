@@ -351,7 +351,7 @@ export const downloads: DownloadAsset[] = [
     id: "DC-P01-SBP-LOG01",
     title: "Daily Governance Log",
     protocol: "Somatic Baseline Protocol",
-    type: "Portal Tool Pending",
+    type: "Interactive Portal Tool",
     audience: "Client",
     status: "Locked"
   },
