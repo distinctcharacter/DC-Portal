@@ -57,8 +57,8 @@ function mergeProtocolRow(
       ? progress?.current_phase_key
         ? `Continue ${progress.current_phase_key.replaceAll("-", " ")}.`
         : existing?.nextAction ?? "Access active. Continue protocol work."
-      : existing?.nextAction ?? "Purchase or prerequisite completion required.",
-    description: row.description ?? existing?.description ?? "Protocol access is available through your account record.",
+      : existing?.nextAction ?? "This protocol opens when it is available in your portal.",
+    description: row.description ?? existing?.description ?? "This protocol belongs to your Distinct Character library.",
     requirements: existing?.requirements,
     children: existing?.children
   };

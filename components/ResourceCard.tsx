@@ -12,7 +12,6 @@ export function ResourceCard({
   role?: Role;
 }) {
   const access = usePortalAccess(role);
-  const effectiveRole = access.role;
   const isPractitionerOnly = resource.access === "Practitioner";
   const isLocked = isPractitionerOnly && !access.canAccessPractitionerLayer;
 

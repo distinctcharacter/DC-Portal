@@ -8,7 +8,7 @@ export function accessLabel(status: ProtocolStatus) {
   if (status === "in_progress") return "In Progress";
   if (status === "available") return "Unlocked";
   if (status === "completed") return "Completed";
-  if (status === "future") return "Future";
+  if (status === "future") return "Locked";
   return "Locked";
 }
 

@@ -36,7 +36,7 @@ function mapResourceRow(row: ResourceAssetRow, existing?: Resource): Resource {
     access: row.practitioner_only ? "Practitioner" : existing?.access ?? "Unlocked",
     description:
       existing?.description ??
-      "Resource access is available through your account record.",
+      "This resource supports your active protocol work.",
     href: row.public_path ?? existing?.href
   };
 }
