@@ -102,8 +102,8 @@ export default function ProtocolPage({
               <span className="eyebrow">Client Notes</span>
               <h2>Module Review Notes</h2>
               <p>
-                Use this area for module-specific guidance, refinement notes, and next-step direction
-                after reviewing the client&apos;s submitted work.
+                Module-specific guidance, refinement notes, and next-step direction appear here as
+                the commercial incubation work progresses.
               </p>
               <div className="client-note-grid">
                 {enterpriseIpClientNotes.map((note) => {
@@ -191,10 +191,10 @@ export default function ProtocolPage({
               />
             </article>
             <article className="side-card">
-              <span className="eyebrow">Advisor Layer</span>
+              <span className="eyebrow">Review Standard</span>
               <p>
-                Advisor notes should focus on structure, buyer fit, scope, claims hygiene, review
-                needs, and readiness for the next gate.
+                Module review focuses on structure, buyer fit, scope, claims hygiene, and readiness
+                for the next completion gate.
               </p>
             </article>
           </div>
