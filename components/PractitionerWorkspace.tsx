@@ -8,10 +8,6 @@ import {
   type Role
 } from "@/data/mock";
 import {
-  canManagePractitionerNotes,
-  canReviewClients,
-  canViewPractitionerLayer,
-  canViewTherapeuticAddenda,
   practitionerAccessReason
 } from "@/lib/access";
 import { usePortalAccess } from "@/lib/auth/portal-access";
@@ -55,6 +51,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
   const access = usePortalAccess(role);
   const effectiveRole = access.role;
   const hasPractitionerAccess = !access.loading && access.canAccessPractitionerLayer;
+  const practitionerCapabilitiesActive = hasPractitionerAccess;
   const practitionerResources = resources.filter((resource) => resource.access === "Practitioner");
   const [clients, setClients] = useState<PractitionerClient[]>([]);
   const [notes, setNotes] = useState<PractitionerNote[]>([]);
@@ -166,7 +163,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <div className="lock-grid">
             <div>
               <strong>Practitioner Access</strong>
-              <span>{access.loading ? "Confirming practitioner access." : practitionerAccessReason(effectiveRole)}</span>
+              <span>{access.loading ? "Confirming access." : practitionerAccessReason(effectiveRole)}</span>
             </div>
             <div>
               <strong>Practitioner Tools</strong>
@@ -195,8 +192,8 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <h1>Client review and therapeutic integration console.</h1>
           <p>
             Review assigned client progress, monitor pacing signals, access practitioner-only
-            addenda, and document practice notes without exposing clinical-adjacent guidance
-            to client-only accounts.
+            addenda, and document professional observation notes inside a protected review
+            workspace.
           </p>
           <div className="hero-actions">
             <a className="button primary" href="#client-review">
@@ -218,11 +215,11 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
             </div>
             <div>
               <dt>Client Review</dt>
-              <dd>{canReviewClients(effectiveRole) ? "Enabled" : "Disabled"}</dd>
+              <dd>{practitionerCapabilitiesActive ? "Enabled" : "Disabled"}</dd>
             </div>
             <div>
               <dt>Notes Workflow</dt>
-              <dd>{canManagePractitionerNotes(effectiveRole) ? "Enabled" : "Read Only"}</dd>
+              <dd>{practitionerCapabilitiesActive ? "Enabled" : "Read Only"}</dd>
             </div>
           </dl>
         </div>
@@ -253,7 +250,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
         <SectionHeader
           eyebrow="Client Review View"
           title="Assigned Client Progress"
-          copy="This view gives practitioners a structured readout without exposing sensitive private notes to the client dashboard."
+          copy="This view gives practitioners a structured readout for assigned client relationships, pacing review, and protocol support."
         />
         {clients.length ? (
           <div className="client-review-grid">
@@ -286,8 +283,8 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           <article className="empty-state-panel">
             <h3>No assigned clients yet.</h3>
             <p>
-              Assigned client records will appear here after an admin creates an active
-              practitioner-client relationship.
+              Assigned client records will appear here once a client relationship has been
+              activated for this practitioner account.
             </p>
           </article>
         )}
@@ -300,7 +297,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
           copy="Addenda are visible only when practitioner access is active. They support pacing, safety boundaries, observation, and referral awareness."
         />
         <div className="addenda-list">
-          {canViewTherapeuticAddenda(effectiveRole) &&
+          {practitionerCapabilitiesActive &&
             therapeuticAddenda.map((addendum) => (
               <article className="addendum-card" key={addendum.id}>
                 <span className="protocol-id">{addendum.id}</span>

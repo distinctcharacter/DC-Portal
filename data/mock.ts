@@ -198,13 +198,13 @@ export const resources: Resource[] = [
   },
   {
     id: "DC-R02-12W",
-    title: "12 Dimensions of Wellness",
+    title: "12 Dimensions of Self-Mastery",
     category: "Foundation Resource",
     protocol: "Foundation",
     audience: "Client + Practitioner",
     access: "Unlocked",
     description:
-      "A multidimensional map for reading physical, relational, identity, boundary, and self-efficacy signals.",
+      "The Distinct Character whole-system framework for physical, relational, identity, boundary, nervous system, and self-efficacy signals.",
     href: "/resources/12-dimensions-wellness.pdf"
   },
   {
