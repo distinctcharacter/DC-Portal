@@ -86,14 +86,36 @@ async function userHasProtocolAccess(
 
   const { data, error } = await admin
     .from("protocol_entitlements")
-    .select("id")
+    .select("entitlement_type, protocol_id, expires_at")
     .eq("user_id", userId)
-    .eq("status", "active")
-    .in("protocol_id", protocolIds)
-    .limit(1);
+    .eq("status", "active");
 
   if (error) throw error;
-  return Boolean(data?.length);
+
+  const activeRows = (data ?? []).filter((row) => {
+    const expiresAt = row.expires_at as string | null;
+    return !expiresAt || new Date(expiresAt).getTime() > Date.now();
+  });
+
+  if (activeRows.some((row) => row.protocol_id && protocolIds.includes(row.protocol_id as string))) {
+    return true;
+  }
+
+  const bundleProtocolIds = activeRows
+    .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
+    .map((row) => row.protocol_id as string);
+
+  if (!bundleProtocolIds.length) return false;
+
+  const { data: childRows, error: childError } = await admin
+    .from("bundle_protocols")
+    .select("child_protocol_id")
+    .in("bundle_protocol_id", bundleProtocolIds)
+    .in("child_protocol_id", protocolIds)
+    .limit(1);
+
+  if (childError) throw childError;
+  return Boolean(childRows?.length);
 }
 
 export async function handler(event: FunctionEvent) {

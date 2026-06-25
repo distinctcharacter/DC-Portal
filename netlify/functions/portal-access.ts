@@ -30,6 +30,37 @@ function entitlementIsActive(row: { expires_at: string | null }) {
   return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
 }
 
+async function expandedProtocolIds(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  entitlementRows: Array<{ entitlement_type: string; protocol_id: string | null; expires_at: string | null }>
+) {
+  const activeEntitlements = entitlementRows.filter(entitlementIsActive);
+  const ids = new Set<string>();
+
+  for (const row of activeEntitlements) {
+    if (row.protocol_id) ids.add(row.protocol_id);
+  }
+
+  const bundleProtocolIds = activeEntitlements
+    .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
+    .map((row) => row.protocol_id as string);
+
+  if (!bundleProtocolIds.length) return Array.from(ids);
+
+  const { data, error } = await admin
+    .from("bundle_protocols")
+    .select("child_protocol_id")
+    .in("bundle_protocol_id", bundleProtocolIds);
+
+  if (error) throw error;
+
+  for (const row of data ?? []) {
+    if (row.child_protocol_id) ids.add(row.child_protocol_id as string);
+  }
+
+  return Array.from(ids);
+}
+
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "GET") {
     return jsonResponse(405, { error: "Method not allowed." });
@@ -113,14 +144,20 @@ export async function handler(event: FunctionEvent) {
     const canAccessLicenseLayer =
       isAdmin ||
       (hasLicenseHolderRole && (hasLicenseSeatEntitlement || hasActiveLicenseMembership));
+    const protocolIds = await expandedProtocolIds(
+      admin,
+      (entitlementRows ?? []) as Array<{
+        entitlement_type: string;
+        protocol_id: string | null;
+        expires_at: string | null;
+      }>
+    );
 
     return jsonResponse(200, {
       ok: true,
       role: primaryRole(roles),
       roles,
-      protocolIds: (entitlementRows ?? [])
-        .map((row) => row.protocol_id as string | null)
-        .filter(Boolean),
+      protocolIds,
       canAccessPractitionerLayer,
       canAccessLicenseLayer
     });

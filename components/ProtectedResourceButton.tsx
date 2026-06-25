@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase/client";
+import { fileNameFromHref } from "@/lib/resource-access-rules";
 
 type ProtectedResourceButtonProps = {
   href?: string;
@@ -9,12 +10,6 @@ type ProtectedResourceButtonProps = {
   className?: string;
   disabled?: boolean;
 };
-
-function fileNameFromHref(href: string) {
-  const cleanHref = href.split("?")[0];
-  const parts = cleanHref.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? "";
-}
 
 export function ProtectedResourceButton({
   href,
