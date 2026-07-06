@@ -2,6 +2,7 @@ import Link from "next/link";
 import { mockUser, type Role } from "@/data/mock";
 import { AuthStatus } from "@/components/AuthStatus";
 import { PortalSessionCard } from "@/components/PortalSessionCard";
+import { TermsAcceptanceGate } from "@/components/TermsAcceptanceGate";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
@@ -46,7 +47,9 @@ export function AppShell({ children, sessionRole = mockUser.role }: AppShellProp
           </div>
           <AuthStatus />
         </header>
-        <main>{children}</main>
+        <main>
+          <TermsAcceptanceGate>{children}</TermsAcceptanceGate>
+        </main>
       </div>
     </div>
   );

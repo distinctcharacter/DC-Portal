@@ -1474,6 +1474,125 @@ li.locked .step-dot {
   line-height: 1.55;
 }
 
+.terms-gate {
+  min-height: calc(100vh - 76px);
+  display: grid;
+  align-items: center;
+  padding: 44px;
+}
+
+.terms-panel {
+  width: min(100%, 980px);
+  margin: 0 auto;
+  padding: 28px;
+  background:
+    linear-gradient(145deg, rgba(21, 19, 26, 0.96), rgba(33, 22, 46, 0.92)),
+    var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.terms-panel.compact {
+  width: min(100%, 680px);
+}
+
+.terms-panel h1 {
+  margin: 10px 0 0;
+  color: var(--warm-white);
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1;
+}
+
+.terms-panel p {
+  color: var(--muted-white);
+  line-height: 1.65;
+}
+
+.terms-panel-header {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.terms-panel-header p {
+  max-width: 780px;
+  margin: 0;
+  color: var(--warm-white);
+  font-size: 17px;
+}
+
+.terms-scroll {
+  max-height: 48vh;
+  overflow: auto;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(9, 9, 11, 0.48);
+}
+
+.terms-section + .terms-section {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.terms-section h2 {
+  margin: 0 0 10px;
+  color: var(--gold-2);
+  font-size: 18px;
+}
+
+.terms-section p {
+  margin: 0 0 10px;
+}
+
+.terms-section ul {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: var(--muted-white);
+  line-height: 1.65;
+}
+
+.terms-section li + li {
+  margin-top: 8px;
+}
+
+.terms-footer {
+  margin: 22px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--gold-2);
+  font-size: 13px;
+}
+
+.terms-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid rgba(191, 164, 106, 0.26);
+  border-radius: var(--radius);
+  background: rgba(191, 164, 106, 0.07);
+  color: var(--warm-white);
+  line-height: 1.5;
+}
+
+.terms-check input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--gold);
+  flex: 0 0 auto;
+}
+
+.terms-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
 @media (max-width: 1180px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -1639,6 +1758,28 @@ li.locked .step-dot {
 
   .download-row.header {
     display: none;
+  }
+
+  .terms-gate {
+    min-height: auto;
+    padding: 18px 0;
+  }
+
+  .terms-panel {
+    padding: 20px;
+  }
+
+  .terms-scroll {
+    max-height: 52vh;
+    padding: 16px;
+  }
+
+  .terms-actions {
+    justify-content: stretch;
+  }
+
+  .terms-actions .button {
+    width: 100%;
   }
 }
 
