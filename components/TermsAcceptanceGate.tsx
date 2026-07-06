@@ -39,7 +39,7 @@ const termsSections = [
   {
     title: "Permission Requests",
     body: [
-      "Any use of portal content outside of personal implementation requires prior written authorization. Permission requests must be submitted to contact@asolenneinstitute.com and must specify the intended use, format, audience, and platform. Permission is granted at the sole discretion of the A. Solenne Institute and is not implied by purchase."
+      "Any use of portal content outside of personal implementation requires prior written authorization. Permission requests must be submitted to inquires@asolenneinstitute.com and must specify the intended use, format, audience, and platform. Permission is granted at the sole discretion of the A. Solenne Institute and is not implied by purchase."
     ]
   },
   {
