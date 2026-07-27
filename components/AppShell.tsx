@@ -3,14 +3,7 @@ import { mockUser, type Role } from "@/data/mock";
 import { AuthStatus } from "@/components/AuthStatus";
 import { PortalSessionCard } from "@/components/PortalSessionCard";
 import { TermsAcceptanceGate } from "@/components/TermsAcceptanceGate";
-
-const navItems = [
-  { href: "/", label: "Dashboard" },
-  { href: "/protocols", label: "Protocols" },
-  { href: "/resources", label: "Resources" },
-  { href: "/downloads", label: "Downloads" },
-  { href: "/practitioner", label: "Practitioner" }
-];
+import { PortalNav } from "@/components/PortalNav";
 
 type AppShellProps = {
   children: React.ReactNode;
@@ -30,13 +23,7 @@ export function AppShell({ children, sessionRole = mockUser.role }: AppShellProp
             <small>Protocol Portal</small>
           </span>
         </Link>
-        <nav className="nav-list">
-          {navItems.map((item) => (
-            <Link href={item.href} key={item.href}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <PortalNav />
         <PortalSessionCard fallbackRole={sessionRole} />
       </aside>
       <div className="main-frame">
