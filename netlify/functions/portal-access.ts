@@ -6,6 +6,7 @@ type FunctionEvent = {
 };
 
 const ROLE_PRIORITY = ["admin", "practitioner", "license_holder", "client"];
+const DEFAULT_FOUNDER_EMAILS = ["stephanie@granitefieldholdings.com"];
 
 function jsonResponse(statusCode: number, body: unknown) {
   return {
@@ -24,6 +25,19 @@ function getAuthorizationHeader(headers: Record<string, string | undefined>) {
 
 function primaryRole(roles: string[]) {
   return ROLE_PRIORITY.find((role) => roles.includes(role)) ?? "client";
+}
+
+function normalizeEmail(email: string | null | undefined) {
+  return email?.trim().toLowerCase() ?? "";
+}
+
+function founderEmails() {
+  const configuredEmails = process.env.FOUNDER_ADMIN_EMAILS?.split(",") ?? DEFAULT_FOUNDER_EMAILS;
+  return configuredEmails.map(normalizeEmail).filter(Boolean);
+}
+
+function isFounderEmail(email: string | null | undefined) {
+  return founderEmails().includes(normalizeEmail(email));
 }
 
 function entitlementIsActive(row: { expires_at: string | null }) {
@@ -81,6 +95,8 @@ export async function handler(event: FunctionEvent) {
       return jsonResponse(401, { error: "Login required." });
     }
 
+    const founderAdmin = isFounderEmail(data.user.email);
+
     const { data: profileRow, error: profileError } = await admin
       .from("profiles")
       .select("primary_role")
@@ -99,6 +115,7 @@ export async function handler(event: FunctionEvent) {
     const roles = Array.from(
       new Set([
         "client",
+        founderAdmin ? "admin" : null,
         profileRow?.primary_role === "dtc_client" ? "client" : profileRow?.primary_role,
         ...((roleRows ?? []).map((row) => (row.role === "dtc_client" ? "client" : (row.role as string))))
       ].filter(Boolean) as string[])

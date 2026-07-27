@@ -22,6 +22,8 @@ type PurchaseRow = {
   created_at: string;
 };
 
+const DEFAULT_FOUNDER_EMAILS = ["stephanie@granitefieldholdings.com"];
+
 function jsonResponse(statusCode: number, body: unknown) {
   return {
     statusCode,
@@ -43,11 +45,28 @@ function getNumberParam(value: string | undefined, fallback: number, max: number
   return Math.min(Math.floor(parsed), max);
 }
 
+function normalizeEmail(email: string | null | undefined) {
+  return email?.trim().toLowerCase() ?? "";
+}
+
+function founderEmails() {
+  const configuredEmails = process.env.FOUNDER_ADMIN_EMAILS?.split(",") ?? DEFAULT_FOUNDER_EMAILS;
+  return configuredEmails.map(normalizeEmail).filter(Boolean);
+}
+
+function isFounderEmail(email: string | null | undefined) {
+  return founderEmails().includes(normalizeEmail(email));
+}
+
 async function assertAdmin(admin: ReturnType<typeof getSupabaseAdmin>, token: string) {
   const { data, error } = await admin.auth.getUser(token);
 
   if (error || !data.user) {
     return { ok: false as const, statusCode: 401, userId: null, message: "Login required." };
+  }
+
+  if (isFounderEmail(data.user.email)) {
+    return { ok: true as const, userId: data.user.id };
   }
 
   const { data: profile, error: profileError } = await admin
