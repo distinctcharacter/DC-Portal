@@ -81,6 +81,14 @@ export async function handler(event: FunctionEvent) {
       return jsonResponse(401, { error: "Login required." });
     }
 
+    const { data: profileRow, error: profileError } = await admin
+      .from("profiles")
+      .select("primary_role")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+
     const { data: roleRows, error: roleError } = await admin
       .from("user_role_assignments")
       .select("role")
@@ -88,7 +96,13 @@ export async function handler(event: FunctionEvent) {
 
     if (roleError) throw roleError;
 
-    const roles = Array.from(new Set(["client", ...((roleRows ?? []).map((row) => row.role as string))]));
+    const roles = Array.from(
+      new Set([
+        "client",
+        profileRow?.primary_role === "dtc_client" ? "client" : profileRow?.primary_role,
+        ...((roleRows ?? []).map((row) => (row.role === "dtc_client" ? "client" : (row.role as string))))
+      ].filter(Boolean) as string[])
+    );
 
     const { data: entitlementRows, error: entitlementError } = await admin
       .from("protocol_entitlements")
