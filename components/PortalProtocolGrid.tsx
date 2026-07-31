@@ -21,6 +21,7 @@ type ProtocolProgressRow = {
   completion_percent: number;
   current_phase_key: string | null;
   last_activity_at: string | null;
+  completed_at?: string | null;
 };
 
 type PortalCatalogPayload = {
@@ -38,6 +39,7 @@ function mergeProtocolRow(
   const hasAccess = accessibleProtocolIds.has(row.id);
   const progress = progressByProtocol.get(row.id);
   const completion = progress?.completion_percent ?? existing?.completion ?? 0;
+  const completed = Boolean(progress?.completed_at) || completion >= 100;
   const defaultStatus = row.status === "future" ? "future" : hasAccess ? "available" : "locked";
 
   return {
@@ -47,11 +49,11 @@ function mergeProtocolRow(
     phase: row.phase_label,
     type: existing?.type ?? (row.parent_protocol_id ? "child" : row.status === "future" ? "future" : "core"),
     status:
-      hasAccess && existing?.status === "in_progress"
-        ? "in_progress"
-        : hasAccess && existing?.status === "completed"
+      hasAccess && completed
           ? "completed"
-          : defaultStatus,
+          : hasAccess && existing?.status === "in_progress"
+            ? "in_progress"
+            : defaultStatus,
     completion,
     nextAction: hasAccess
       ? progress?.current_phase_key

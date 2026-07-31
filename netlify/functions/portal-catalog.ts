@@ -133,7 +133,7 @@ export async function handler(event: FunctionEvent) {
         .order("created_at", { ascending: true }),
       admin
         .from("protocol_progress")
-        .select("protocol_id, completion_percent, current_phase_key, last_activity_at")
+        .select("protocol_id, completion_percent, current_phase_key, last_activity_at, completed_at")
         .eq("user_id", data.user.id),
       admin
         .from("practice_logs")

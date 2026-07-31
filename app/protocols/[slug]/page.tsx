@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ProgressTracker } from "@/components/ProgressTracker";
+import { ProtocolCompletionPanel } from "@/components/ProtocolCompletionPanel";
 import { ProtectedResourceButton } from "@/components/ProtectedResourceButton";
 import { SectionHeader } from "@/components/SectionHeader";
 import { SomaticResetLog } from "@/components/SomaticResetLog";
@@ -164,6 +165,11 @@ export default function ProtocolPage({
                 </div>
               </section>
             ) : null}
+
+            <ProtocolCompletionPanel
+              protocolId="DC-P07-EIP"
+              protocolTitle="Enterprise IP Mastermind"
+            />
           </article>
 
           <div className="protocol-side">
@@ -304,6 +310,11 @@ export default function ProtocolPage({
               </>
             )}
           </section>
+
+          <ProtocolCompletionPanel
+            protocolId="DC-P01-SBP"
+            protocolTitle="Somatic Baseline Protocol"
+          />
         </article>
 
         <div className="protocol-side">
