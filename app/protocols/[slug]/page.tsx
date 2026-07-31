@@ -294,7 +294,10 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
           "Clients define the structures, review cycles, decision rules, and standards that keep self-mastery operational beyond the portal container."
       }
     ],
-    assets: [{ label: "Self-Mastery Blueprint Protocol", href: "/resources/self-mastery-blueprint-protocol.pdf" }],
+    assets: [
+      { label: "Self-Mastery Blueprint Protocol", href: "/resources/self-mastery-blueprint-protocol.pdf" },
+      { label: "Relapse & Re-Entry Ledger", href: "/resources/self-mastery-blueprint-relapse-reentry-ledger.pdf" }
+    ],
     requirements: ["Complete capstone architecture", "Document operating standards", "Review final self-mastery command center"]
   }
 };

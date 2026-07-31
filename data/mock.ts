@@ -285,6 +285,17 @@ export const resources: Resource[] = [
     href: "/resources/enterprise-ip-mastermind-resource-suite.pdf"
   },
   {
+    id: "DC-P06-SMB-RR01",
+    title: "Relapse & Re-Entry Ledger",
+    category: "Capstone Integration Tool",
+    protocol: "Self-Mastery Blueprint",
+    audience: "Client + Practitioner",
+    access: "Unlocked",
+    description:
+      "A capstone ledger for classifying disruption, restoring behavioral governance, and updating the Self-Mastery Blueprint after relapse or re-entry events.",
+    href: "/resources/self-mastery-blueprint-relapse-reentry-ledger.pdf"
+  },
+  {
     id: "DC-P07-EIP-ADV01",
     title: "Enterprise IP Mastermind Advisor Legal-Ops Guide",
     category: "Advisor Resource",
@@ -435,6 +446,15 @@ export const downloads: DownloadAsset[] = [
     audience: "Client",
     status: "Locked",
     href: "/resources/self-mastery-blueprint-protocol.pdf"
+  },
+  {
+    id: "DC-P06-SMB-RR01",
+    title: "Relapse & Re-Entry Ledger",
+    protocol: "Self-Mastery Blueprint",
+    type: "Capstone Integration Tool",
+    audience: "Client + Practitioner",
+    status: "Locked",
+    href: "/resources/self-mastery-blueprint-relapse-reentry-ledger.pdf"
   },
   {
     id: "DC-P07-EIP-RS01",

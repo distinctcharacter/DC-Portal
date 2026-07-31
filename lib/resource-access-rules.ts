@@ -25,6 +25,7 @@ export const RESOURCE_ACCESS_RULES: Record<string, ResourceAccessRule> = {
   "internal-signal-calibration-protocol.pdf": { protocolIds: ["DC-P04-ISC"] },
   "30-day-sovereignty-reset-protocol.pdf": { protocolIds: ["DC-P05-SOV"] },
   "self-mastery-blueprint-protocol.pdf": { protocolIds: ["DC-P06-SMB"] },
+  "self-mastery-blueprint-relapse-reentry-ledger.pdf": { protocolIds: ["DC-P06-SMB"] },
   "enterprise-ip-mastermind-resource-suite.pdf": { protocolIds: ["DC-P07-EIP"] },
   "enterprise-ip-mastermind-advisor-guide.pdf": { practitionerOnly: true }
 };
