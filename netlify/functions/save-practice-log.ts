@@ -7,6 +7,7 @@ type FunctionEvent = {
 };
 
 const SOMATIC_BASELINE_PROTOCOL_ID = "DC-P01-SBP";
+const COMPLETION_CLOSEOUT_DAYS = 7;
 
 function jsonResponse(statusCode: number, body: unknown) {
   return {
@@ -36,6 +37,30 @@ function parseBody(body: string | null | undefined) {
   } catch {
     return {};
   }
+}
+
+function entitlementIsActive(row: { expires_at: string | null }) {
+  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
+}
+
+function addDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+async function protocolCompletionCloseoutIsActive(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const { data, error } = await admin
+    .from("protocol_progress")
+    .select("completed_at")
+    .eq("user_id", userId)
+    .eq("protocol_id", SOMATIC_BASELINE_PROTOCOL_ID)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data?.completed_at) return true;
+
+  return addDays(new Date(data.completed_at as string), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
 }
 
 async function ensureProfile(
@@ -81,20 +106,25 @@ async function userHasSomaticAccess(admin: ReturnType<typeof getSupabaseAdmin>, 
   if (roleError) throw roleError;
   if ((roleRows ?? []).some((row) => row.role === "admin")) return true;
 
+  const completionCloseoutActive = await protocolCompletionCloseoutIsActive(admin, userId);
+
+  if (!completionCloseoutActive) return false;
+
   const { data: directRows, error: directError } = await admin
     .from("protocol_entitlements")
-    .select("id")
+    .select("id, expires_at")
     .eq("user_id", userId)
     .eq("status", "active")
-    .eq("protocol_id", SOMATIC_BASELINE_PROTOCOL_ID)
-    .limit(1);
+    .eq("protocol_id", SOMATIC_BASELINE_PROTOCOL_ID);
 
   if (directError) throw directError;
-  if (directRows?.length) return true;
+  if ((directRows ?? []).some((row) => entitlementIsActive(row as { expires_at: string | null }))) {
+    return true;
+  }
 
   const { data: bundleRows, error: bundleError } = await admin
     .from("protocol_entitlements")
-    .select("protocol_id")
+    .select("protocol_id, expires_at")
     .eq("user_id", userId)
     .eq("status", "active")
     .eq("entitlement_type", "bundle")
@@ -103,6 +133,7 @@ async function userHasSomaticAccess(admin: ReturnType<typeof getSupabaseAdmin>, 
   if (bundleError) throw bundleError;
 
   const bundleProtocolIds = (bundleRows ?? [])
+    .filter((row) => entitlementIsActive(row as { expires_at: string | null }))
     .map((row) => row.protocol_id as string | null)
     .filter(Boolean) as string[];
 

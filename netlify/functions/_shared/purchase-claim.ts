@@ -39,6 +39,12 @@ function addDays(date: Date, days: number) {
   return result.toISOString();
 }
 
+function subtractDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() - days);
+  return result.toISOString();
+}
+
 async function findMapping(admin: DatabaseClient, purchase: PurchaseRow) {
   if (purchase.stripe_price_id) {
     const { data, error } = await admin
@@ -96,6 +102,8 @@ async function hasExistingEntitlementFor(
   entitlementType: string,
   protocolId: string | null
 ) {
+  await expireClosedEntitlementsFor(admin, userId, entitlementType, protocolId);
+
   let query = admin
     .from("protocol_entitlements")
     .select("id")
@@ -109,6 +117,61 @@ async function hasExistingEntitlementFor(
   const { data, error } = await query;
   if (error) throw error;
   return Boolean(data?.length);
+}
+
+async function expireClosedEntitlementsFor(
+  admin: DatabaseClient,
+  userId: string,
+  entitlementType: string,
+  protocolId: string | null
+) {
+  const now = new Date();
+  let expiredWindowQuery = admin
+    .from("protocol_entitlements")
+    .update({
+      status: "expired",
+      updated_at: now.toISOString()
+    })
+    .eq("user_id", userId)
+    .eq("entitlement_type", entitlementType)
+    .in("status", ["active", "pending"])
+    .lte("expires_at", now.toISOString());
+
+  expiredWindowQuery = protocolId
+    ? expiredWindowQuery.eq("protocol_id", protocolId)
+    : expiredWindowQuery.is("protocol_id", null);
+
+  const { error: expiredWindowError } = await expiredWindowQuery;
+  if (expiredWindowError) throw expiredWindowError;
+
+  if (!protocolId) return;
+
+  const { data: progress, error: progressError } = await admin
+    .from("protocol_progress")
+    .select("completed_at")
+    .eq("user_id", userId)
+    .eq("protocol_id", protocolId)
+    .maybeSingle();
+
+  if (progressError) throw progressError;
+  if (!progress?.completed_at) return;
+
+  const closeoutCutoff = subtractDays(now, 7);
+
+  if (new Date(progress.completed_at as string).getTime() > new Date(closeoutCutoff).getTime()) return;
+
+  const { error: completionExpiredError } = await admin
+    .from("protocol_entitlements")
+    .update({
+      status: "expired",
+      updated_at: now.toISOString()
+    })
+    .eq("user_id", userId)
+    .eq("entitlement_type", entitlementType)
+    .eq("protocol_id", protocolId)
+    .in("status", ["active", "pending"]);
+
+  if (completionExpiredError) throw completionExpiredError;
 }
 
 async function ensureEntitlement(

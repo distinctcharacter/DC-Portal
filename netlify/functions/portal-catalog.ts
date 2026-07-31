@@ -8,7 +8,10 @@ type FunctionEvent = {
 type EntitlementRow = {
   entitlement_type: string;
   protocol_id: string | null;
+  expires_at: string | null;
 };
+
+const COMPLETION_CLOSEOUT_DAYS = 7;
 
 function jsonResponse(statusCode: number, body: unknown) {
   return {
@@ -25,24 +28,54 @@ function getAuthorizationHeader(headers: Record<string, string | undefined>) {
   return headers.Authorization ?? headers.authorization ?? "";
 }
 
+function entitlementIsActive(row: { expires_at: string | null }) {
+  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
+}
+
+function addDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function completionCloseoutIsActive(protocolId: string | null, completedByProtocol: Map<string, string | null>) {
+  if (!protocolId) return true;
+  const completedAt = completedByProtocol.get(protocolId);
+  if (!completedAt) return true;
+  return addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
+}
+
 async function expandedProtocolAccess(
   admin: ReturnType<typeof getSupabaseAdmin>,
   userId: string
 ) {
   const { data: entitlements, error } = await admin
     .from("protocol_entitlements")
-    .select("entitlement_type, protocol_id")
+    .select("entitlement_type, protocol_id, expires_at")
     .eq("user_id", userId)
     .eq("status", "active");
 
   if (error) throw error;
 
   const accessibleProtocolIds = new Set<string>();
-  const bundleProtocolIds = ((entitlements ?? []) as EntitlementRow[])
+  const { data: progressRows, error: progressError } = await admin
+    .from("protocol_progress")
+    .select("protocol_id, completed_at")
+    .eq("user_id", userId);
+
+  if (progressError) throw progressError;
+
+  const completedByProtocol = new Map(
+    (progressRows ?? []).map((row) => [row.protocol_id as string, (row.completed_at as string | null) ?? null])
+  );
+  const activeEntitlements = ((entitlements ?? []) as EntitlementRow[]).filter(
+    (row) => entitlementIsActive(row) && completionCloseoutIsActive(row.protocol_id, completedByProtocol)
+  );
+  const bundleProtocolIds = activeEntitlements
     .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
     .map((row) => row.protocol_id as string);
 
-  for (const entitlement of (entitlements ?? []) as EntitlementRow[]) {
+  for (const entitlement of activeEntitlements) {
     if (entitlement.protocol_id) accessibleProtocolIds.add(entitlement.protocol_id);
   }
 

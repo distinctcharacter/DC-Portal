@@ -19,6 +19,7 @@ type AccessRule = {
 };
 
 const RESOURCE_ROOT = resolve(process.cwd(), "protected-resources", "resources");
+const COMPLETION_CLOSEOUT_DAYS = 7;
 
 const RESOURCE_ACCESS: Record<string, AccessRule> = {
   "12-dimensions-wellness.pdf": { authenticated: true },
@@ -67,6 +68,43 @@ function sanitizeFileName(value: string | undefined) {
   return fileName;
 }
 
+function entitlementIsActive(row: { expires_at: string | null }) {
+  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
+}
+
+function addDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+async function completedProtocolMap(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const { data, error } = await admin
+    .from("protocol_progress")
+    .select("protocol_id, completed_at")
+    .eq("user_id", userId);
+
+  if (error) throw error;
+
+  return new Map(
+    (data ?? []).map((row) => [row.protocol_id as string, (row.completed_at as string | null) ?? null])
+  );
+}
+
+function completionCloseoutIsActive(protocolId: string | null, completedByProtocol: Map<string, string | null>) {
+  if (!protocolId) return true;
+  const completedAt = completedByProtocol.get(protocolId);
+  if (!completedAt) return true;
+  return addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
+}
+
+function entitlementCurrentlyAvailable(
+  row: { protocol_id: string | null; expires_at: string | null },
+  completedByProtocol: Map<string, string | null>
+) {
+  return entitlementIsActive(row) && completionCloseoutIsActive(row.protocol_id, completedByProtocol);
+}
+
 async function streamToBuffer(stream: NodeJS.ReadableStream) {
   const chunks: Buffer[] = [];
 
@@ -92,10 +130,13 @@ async function userHasProtocolAccess(
 
   if (error) throw error;
 
-  const activeRows = (data ?? []).filter((row) => {
-    const expiresAt = row.expires_at as string | null;
-    return !expiresAt || new Date(expiresAt).getTime() > Date.now();
-  });
+  const completedByProtocol = await completedProtocolMap(admin, userId);
+  const activeRows = (data ?? []).filter((row) =>
+    entitlementCurrentlyAvailable(
+      row as { protocol_id: string | null; expires_at: string | null },
+      completedByProtocol
+    )
+  );
 
   if (activeRows.some((row) => row.protocol_id && protocolIds.includes(row.protocol_id as string))) {
     return true;
@@ -116,6 +157,25 @@ async function userHasProtocolAccess(
 
   if (childError) throw childError;
   return Boolean(childRows?.length);
+}
+
+async function userHasActivePortalEntitlement(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const { data, error } = await admin
+    .from("protocol_entitlements")
+    .select("id, protocol_id, expires_at")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  if (error) throw error;
+
+  const completedByProtocol = await completedProtocolMap(admin, userId);
+
+  return (data ?? []).some((row) =>
+    entitlementCurrentlyAvailable(
+      row as { protocol_id: string | null; expires_at: string | null },
+      completedByProtocol
+    )
+  );
 }
 
 export async function handler(event: FunctionEvent) {
@@ -147,6 +207,8 @@ export async function handler(event: FunctionEvent) {
 
     const roles = await userRoles(admin, data.user.id);
     const isAdmin = roles.includes("admin");
+    const hasActivePortalEntitlement =
+      isAdmin || (data.user.email_confirmed_at ? await userHasActivePortalEntitlement(admin, data.user.id) : false);
     const hasPractitionerLayerAccess = rule.practitionerOnly
       ? await userHasPractitionerLayerAccess(admin, data.user.id, roles)
       : false;
@@ -156,7 +218,7 @@ export async function handler(event: FunctionEvent) {
 
     const allowed =
       isAdmin ||
-      Boolean(rule.authenticated && data.user.email_confirmed_at) ||
+      Boolean(rule.authenticated && data.user.email_confirmed_at && hasActivePortalEntitlement) ||
       Boolean(rule.protocolIds && hasProtocolAccess) ||
       Boolean(rule.practitionerOnly && hasPractitionerLayerAccess);
 

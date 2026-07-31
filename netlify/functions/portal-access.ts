@@ -7,6 +7,18 @@ type FunctionEvent = {
 
 const ROLE_PRIORITY = ["admin", "practitioner", "license_holder", "client"];
 const DEFAULT_FOUNDER_EMAILS = ["stephanie@granitefieldholdings.com"];
+const COMPLETION_CLOSEOUT_DAYS = 7;
+
+type EntitlementRow = {
+  entitlement_type: string;
+  protocol_id: string | null;
+  expires_at: string | null;
+};
+
+type ProgressRow = {
+  protocol_id: string;
+  completed_at: string | null;
+};
 
 function jsonResponse(statusCode: number, body: unknown) {
   return {
@@ -40,22 +52,51 @@ function isFounderEmail(email: string | null | undefined) {
   return founderEmails().includes(normalizeEmail(email));
 }
 
-function entitlementIsActive(row: { expires_at: string | null }) {
-  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
+function addDays(date: Date, days: number) {
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+}
+
+function earliestDate(dates: Date[]) {
+  if (!dates.length) return null;
+  return new Date(Math.min(...dates.map((date) => date.getTime())));
+}
+
+function latestDate(dates: Date[]) {
+  if (!dates.length) return null;
+  return new Date(Math.max(...dates.map((date) => date.getTime())));
+}
+
+function entitlementEffectiveEndsAt(row: EntitlementRow, progressByProtocol: Map<string, string | null>) {
+  const dates: Date[] = [];
+
+  if (row.expires_at) dates.push(new Date(row.expires_at));
+
+  if (row.protocol_id) {
+    const completedAt = progressByProtocol.get(row.protocol_id);
+    if (completedAt) dates.push(addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS));
+  }
+
+  return earliestDate(dates);
+}
+
+function entitlementIsCurrentlyAvailable(row: EntitlementRow, progressByProtocol: Map<string, string | null>) {
+  const endsAt = entitlementEffectiveEndsAt(row, progressByProtocol);
+  return !endsAt || endsAt.getTime() > Date.now();
 }
 
 async function expandedProtocolIds(
   admin: ReturnType<typeof getSupabaseAdmin>,
-  entitlementRows: Array<{ entitlement_type: string; protocol_id: string | null; expires_at: string | null }>
+  entitlementRows: EntitlementRow[]
 ) {
-  const activeEntitlements = entitlementRows.filter(entitlementIsActive);
   const ids = new Set<string>();
 
-  for (const row of activeEntitlements) {
+  for (const row of entitlementRows) {
     if (row.protocol_id) ids.add(row.protocol_id);
   }
 
-  const bundleProtocolIds = activeEntitlements
+  const bundleProtocolIds = entitlementRows
     .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
     .map((row) => row.protocol_id as string);
 
@@ -129,12 +170,27 @@ export async function handler(event: FunctionEvent) {
 
     if (entitlementError) throw entitlementError;
 
+    const { data: progressRows, error: progressError } = await admin
+      .from("protocol_progress")
+      .select("protocol_id, completed_at")
+      .eq("user_id", data.user.id);
+
+    if (progressError) throw progressError;
+
+    const progressByProtocol = new Map(
+      ((progressRows ?? []) as ProgressRow[]).map((row) => [row.protocol_id, row.completed_at])
+    );
+
     const isAdmin = roles.includes("admin");
     const hasPractitionerRole = roles.includes("practitioner");
     const hasLicenseHolderRole = roles.includes("license_holder");
-    const activeEntitlements = (entitlementRows ?? []).filter((row) =>
-      entitlementIsActive(row as { expires_at: string | null })
+    const activeEntitlements = ((entitlementRows ?? []) as EntitlementRow[]).filter((row) =>
+      entitlementIsCurrentlyAvailable(row, progressByProtocol)
     );
+    const entitlementEndDates = activeEntitlements
+      .map((row) => entitlementEffectiveEndsAt(row, progressByProtocol))
+      .filter(Boolean) as Date[];
+    const activeAccessUntil = latestDate(entitlementEndDates);
     const hasPractitionerEntitlement = activeEntitlements.some(
       (row) => row.entitlement_type === "practitioner_layer"
     );
@@ -177,11 +233,7 @@ export async function handler(event: FunctionEvent) {
       (hasLicenseHolderRole && (hasLicenseSeatEntitlement || hasActiveLicenseMembership));
     const protocolIds = await expandedProtocolIds(
       admin,
-      (entitlementRows ?? []) as Array<{
-        entitlement_type: string;
-        protocol_id: string | null;
-        expires_at: string | null;
-      }>
+      activeEntitlements
     );
 
     return jsonResponse(200, {
@@ -190,7 +242,14 @@ export async function handler(event: FunctionEvent) {
       roles,
       protocolIds,
       canAccessPractitionerLayer,
-      canAccessLicenseLayer
+      canAccessLicenseLayer,
+      hasActivePortalAccess:
+        isAdmin ||
+        activeEntitlements.length > 0 ||
+        canAccessPractitionerLayer ||
+        canAccessLicenseLayer,
+      activeAccessUntil: activeAccessUntil ? activeAccessUntil.toISOString() : null,
+      activeEntitlementCount: activeEntitlements.length
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Portal access check failed.";

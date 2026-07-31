@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { usePortalAccess } from "@/lib/auth/portal-access";
 import { supabase } from "@/lib/supabase/client";
 
 const TERMS_VERSION = "dc-portal-terms-v2-2025";
@@ -54,6 +55,7 @@ const termsSections = [
 type GateStatus = "checking" | "guest" | "required" | "accepted";
 
 export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
+  const portalAccess = usePortalAccess();
   const [status, setStatus] = useState<GateStatus>("checking");
   const [checked, setChecked] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -132,6 +134,42 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
   }
 
   if (status === "accepted") {
+    if (portalAccess.loading) {
+      return (
+        <section className="terms-gate" aria-live="polite">
+          <div className="terms-panel compact">
+            <span className="eyebrow">Portal Access</span>
+            <h1>Preparing your private workspace.</h1>
+            <p>Your current product access is being confirmed.</p>
+          </div>
+        </section>
+      );
+    }
+
+    if (!portalAccess.hasActivePortalAccess) {
+      return (
+        <section className="terms-gate">
+          <div className="terms-panel compact">
+            <span className="eyebrow">Access Window Complete</span>
+            <h1>Portal access is not currently active.</h1>
+            <p>
+              This account does not have an active Distinct Character product window. Use the same
+              purchase email to claim a new product, or return to the Distinct Character website to
+              continue with another protocol.
+            </p>
+            <div className="terms-actions">
+              <Link className="button" href="/access/claim">
+                Claim Product Access
+              </Link>
+              <Link className="button secondary" href="https://distinctcharacter.com">
+                Visit Website
+              </Link>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
     return <>{children}</>;
   }
 

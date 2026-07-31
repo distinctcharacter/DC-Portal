@@ -11,6 +11,9 @@ type PortalAccessState = {
   protocolIds: string[];
   canAccessPractitionerLayer: boolean;
   canAccessLicenseLayer: boolean;
+  hasActivePortalAccess: boolean;
+  activeAccessUntil: string | null;
+  activeEntitlementCount: number;
 };
 
 type PortalAccessPayload = {
@@ -20,6 +23,9 @@ type PortalAccessPayload = {
   protocolIds?: string[];
   canAccessPractitionerLayer?: boolean;
   canAccessLicenseLayer?: boolean;
+  hasActivePortalAccess?: boolean;
+  activeAccessUntil?: string | null;
+  activeEntitlementCount?: number;
 };
 
 export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessState {
@@ -29,7 +35,10 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
     roles: [fallbackRole],
     protocolIds: [],
     canAccessPractitionerLayer: false,
-    canAccessLicenseLayer: false
+    canAccessLicenseLayer: false,
+    hasActivePortalAccess: false,
+    activeAccessUntil: null,
+    activeEntitlementCount: 0
   });
 
   useEffect(() => {
@@ -48,7 +57,10 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
             roles: [fallbackRole],
             protocolIds: [],
             canAccessPractitionerLayer: false,
-            canAccessLicenseLayer: false
+            canAccessLicenseLayer: false,
+            hasActivePortalAccess: false,
+            activeAccessUntil: null,
+            activeEntitlementCount: 0
           });
         }
         return;
@@ -68,7 +80,10 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
             roles: [fallbackRole],
             protocolIds: [],
             canAccessPractitionerLayer: false,
-            canAccessLicenseLayer: false
+            canAccessLicenseLayer: false,
+            hasActivePortalAccess: false,
+            activeAccessUntil: null,
+            activeEntitlementCount: 0
           });
         }
         return;
@@ -83,7 +98,10 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
           roles: payload.roles?.length ? payload.roles : [payload.role ?? fallbackRole],
           protocolIds: payload.protocolIds ?? [],
           canAccessPractitionerLayer: Boolean(payload.canAccessPractitionerLayer),
-          canAccessLicenseLayer: Boolean(payload.canAccessLicenseLayer)
+          canAccessLicenseLayer: Boolean(payload.canAccessLicenseLayer),
+          hasActivePortalAccess: Boolean(payload.hasActivePortalAccess),
+          activeAccessUntil: payload.activeAccessUntil ?? null,
+          activeEntitlementCount: payload.activeEntitlementCount ?? 0
         });
       }
     }
