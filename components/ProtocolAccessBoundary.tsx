@@ -6,13 +6,21 @@ import { usePortalAccess } from "@/lib/auth/portal-access";
 
 type ProtocolAccessBoundaryProps = {
   protocolId: string;
+  accessProtocolIds?: string[];
   children: ReactNode;
 };
 
-export function ProtocolAccessBoundary({ protocolId, children }: ProtocolAccessBoundaryProps) {
+export function ProtocolAccessBoundary({
+  protocolId,
+  accessProtocolIds,
+  children
+}: ProtocolAccessBoundaryProps) {
   const access = usePortalAccess();
   const isAdmin = access.roles.includes("admin");
-  const hasProtocolAccess = access.protocolIds.includes(protocolId);
+  const allowedProtocolIds = accessProtocolIds?.length ? accessProtocolIds : [protocolId];
+  const hasProtocolAccess = allowedProtocolIds.some((allowedProtocolId) =>
+    access.protocolIds.includes(allowedProtocolId)
+  );
 
   if (access.loading) {
     return (

@@ -3,6 +3,8 @@ import type { PortalUser } from "./clerk-auth";
 
 type PurchaseRow = {
   id: string;
+  user_id: string | null;
+  claimed_at: string | null;
   email: string;
   source: string;
   stripe_product_id: string | null;
@@ -314,12 +316,14 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
   }
 
   const purchases = (await sql`
-    select id, email, source, stripe_product_id, stripe_price_id, woocommerce_product_id,
-           woocommerce_variation_id
+    select id, user_id, claimed_at, email, source, stripe_product_id, stripe_price_id,
+           woocommerce_product_id, woocommerce_variation_id
     from public.purchases
     where email_normalized = ${email}
-      and user_id is null
-      and claimed_at is null
+      and (
+        (user_id is null and claimed_at is null)
+        or user_id = ${user.id}
+      )
   `) as PurchaseRow[];
 
   const result: ClaimResult = {
@@ -339,9 +343,11 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
     await ensureRole(user.id, mapping.role_granted);
     await ensureEntitlement(user.id, purchase.id, purchase.source, mapping);
     await ensureBundleChildEntitlements(user.id, purchase.id, purchase.source, mapping);
-    await markPurchaseClaimed(purchase.id, user.id);
+    if (!purchase.user_id || !purchase.claimed_at) {
+      await markPurchaseClaimed(purchase.id, user.id);
+      result.claimedCount += 1;
+    }
 
-    result.claimedCount += 1;
     result.claimed.push(mapping.product_display_name ?? mapping.internal_product_key);
   }
 

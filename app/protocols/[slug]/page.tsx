@@ -17,6 +17,7 @@ import { canViewTherapeuticAddenda } from "@/lib/access";
 
 type GenericProtocolPage = {
   id: string;
+  accessProtocolIds?: string[];
   title: string;
   eyebrow: string;
   lead: string;
@@ -30,6 +31,7 @@ type GenericProtocolPage = {
 const genericProtocolPages: Record<string, GenericProtocolPage> = {
   "cognitive-architecture": {
     id: "DC-P02-COG",
+    accessProtocolIds: ["DC-P02-COG", "DC-P02-IOS", "DC-P02-MES", "DC-P02-NCS"],
     title: "Cognitive Architecture",
     eyebrow: "DC-P02-COG",
     lead:
@@ -68,6 +70,7 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   },
   "identity-operating-system": {
     id: "DC-P02-IOS",
+    accessProtocolIds: ["DC-P02-IOS", "DC-P02-COG"],
     title: "Identity Operating System",
     eyebrow: "DC-P02-IOS",
     lead:
@@ -95,6 +98,7 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   },
   "masking-economy-system": {
     id: "DC-P02-MES",
+    accessProtocolIds: ["DC-P02-MES", "DC-P02-COG"],
     title: "Masking Economy System",
     eyebrow: "DC-P02-MES",
     lead:
@@ -122,6 +126,7 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   },
   "narrative-control-system": {
     id: "DC-P02-NCS",
+    accessProtocolIds: ["DC-P02-NCS", "DC-P02-COG"],
     title: "Narrative Control System",
     eyebrow: "DC-P02-NCS",
     lead:
@@ -176,6 +181,7 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   },
   "relational-command": {
     id: "DC-P04-REL",
+    accessProtocolIds: ["DC-P04-REL", "DC-P04-AUT", "DC-P04-ISC"],
     title: "Relational Command",
     eyebrow: "DC-P04-REL",
     lead:
@@ -203,6 +209,7 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   },
   "authority-framework": {
     id: "DC-P04-AUT",
+    accessProtocolIds: ["DC-P04-AUT", "DC-P04-REL"],
     title: "Authority Framework",
     eyebrow: "DC-P04-AUT",
     lead:
@@ -227,6 +234,7 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   },
   "internal-signal-calibration": {
     id: "DC-P04-ISC",
+    accessProtocolIds: ["DC-P04-ISC", "DC-P04-REL"],
     title: "Internal Signal Calibration",
     eyebrow: "DC-P04-ISC",
     lead:
@@ -335,7 +343,10 @@ export default function ProtocolPage({
   if (genericPage) {
     return (
       <AppShell sessionRole={role}>
-        <ProtocolAccessBoundary protocolId={genericPage.id}>
+        <ProtocolAccessBoundary
+          protocolId={genericPage.id}
+          accessProtocolIds={genericPage.accessProtocolIds}
+        >
           <section className="protocol-layout">
             <article className="protocol-reader">
               <Link className="back-link" href="/protocols">
