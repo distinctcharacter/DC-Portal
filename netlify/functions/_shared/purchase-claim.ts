@@ -182,7 +182,7 @@ async function expireClosedEntitlementsFor(userId: string, entitlementType: stri
   `;
 }
 
-async function hasExistingEntitlementFor(userId: string, entitlementType: string, protocolId: string | null) {
+async function existingEntitlementIdFor(userId: string, entitlementType: string, protocolId: string | null) {
   const sql = getSql();
   await expireClosedEntitlementsFor(userId, entitlementType, protocolId);
 
@@ -206,7 +206,7 @@ async function hasExistingEntitlementFor(userId: string, entitlementType: string
         limit 1
       `;
 
-  return Boolean(rows.length);
+  return (rows[0] as { id?: string } | undefined)?.id ?? null;
 }
 
 async function ensureEntitlement(
@@ -219,34 +219,26 @@ async function ensureEntitlement(
   const sql = getSql();
   const purchasedAt = new Date(purchasedAtValue);
   const expiresAt = mapping.access_duration_days ? addDays(purchasedAt, mapping.access_duration_days) : null;
-  const exists = await hasExistingEntitlementFor(userId, mapping.entitlement_type, mapping.protocol_id);
+  const existingEntitlementId = await existingEntitlementIdFor(
+    userId,
+    mapping.entitlement_type,
+    mapping.protocol_id
+  );
 
-  if (exists) {
-    if (expiresAt) {
-      if (mapping.protocol_id) {
-        await sql`
-          update public.protocol_entitlements
-          set expires_at = least(coalesce(expires_at, ${expiresAt}), ${expiresAt}),
-              updated_at = now()
-          where user_id = ${userId}
-            and entitlement_type = ${mapping.entitlement_type}
-            and protocol_id = ${mapping.protocol_id}
-            and purchase_id = ${purchaseId}
-            and status in ('active', 'pending')
-        `;
-      } else {
-        await sql`
-          update public.protocol_entitlements
-          set expires_at = least(coalesce(expires_at, ${expiresAt}), ${expiresAt}),
-              updated_at = now()
-          where user_id = ${userId}
-            and entitlement_type = ${mapping.entitlement_type}
-            and protocol_id is null
-            and purchase_id = ${purchaseId}
-            and status in ('active', 'pending')
-        `;
-      }
-    }
+  if (existingEntitlementId) {
+    await sql`
+      update public.protocol_entitlements
+      set purchase_id = ${purchaseId},
+          source = ${source},
+          starts_at = ${purchasedAt.toISOString()},
+          expires_at = case
+            when ${expiresAt} is null then null
+            else greatest(coalesce(expires_at, ${expiresAt}), ${expiresAt})
+          end,
+          status = 'active',
+          updated_at = now()
+      where id = ${existingEntitlementId}
+    `;
     return;
   }
 
@@ -278,24 +270,26 @@ async function ensureProtocolEntitlement(
   purchaseId: string,
   source: string,
   protocolId: string,
+  purchasedAtValue: string,
   expiresAt: string | null
 ) {
-  const exists = await hasExistingEntitlementFor(userId, "protocol", protocolId);
+  const existingEntitlementId = await existingEntitlementIdFor(userId, "protocol", protocolId);
   const sql = getSql();
 
-  if (exists) {
-    if (expiresAt) {
-      await sql`
-        update public.protocol_entitlements
-        set expires_at = least(coalesce(expires_at, ${expiresAt}), ${expiresAt}),
-            updated_at = now()
-        where user_id = ${userId}
-          and entitlement_type = 'protocol'
-          and protocol_id = ${protocolId}
-          and purchase_id = ${purchaseId}
-          and status in ('active', 'pending')
-      `;
-    }
+  if (existingEntitlementId) {
+    await sql`
+      update public.protocol_entitlements
+      set purchase_id = ${purchaseId},
+          source = ${source},
+          starts_at = ${purchasedAtValue},
+          expires_at = case
+            when ${expiresAt} is null then null
+            else greatest(coalesce(expires_at, ${expiresAt}), ${expiresAt})
+          end,
+          status = 'active',
+          updated_at = now()
+      where id = ${existingEntitlementId}
+    `;
     return;
   }
 
@@ -341,8 +335,43 @@ async function ensureBundleChildEntitlements(
   const expiresAt = mapping.access_duration_days ? addDays(purchasedAt, mapping.access_duration_days) : null;
 
   for (const child of childRows as Array<{ child_protocol_id: string }>) {
-    await ensureProtocolEntitlement(userId, purchaseId, source, child.child_protocol_id, expiresAt);
+    await ensureProtocolEntitlement(
+      userId,
+      purchaseId,
+      source,
+      child.child_protocol_id,
+      purchasedAtValue,
+      expiresAt
+    );
   }
+}
+
+async function resetProgressForNewPurchase(userId: string, mapping: MappingRow) {
+  if (!mapping.protocol_id) return;
+
+  const sql = getSql();
+  const protocolIds = [mapping.protocol_id];
+
+  if (mapping.grant_child_protocols) {
+    const childRows = (await sql`
+      select child_protocol_id
+      from public.bundle_protocols
+      where bundle_protocol_id = ${mapping.protocol_id}
+    `) as Array<{ child_protocol_id: string }>;
+
+    protocolIds.push(...childRows.map((row) => row.child_protocol_id));
+  }
+
+  await sql.query(
+    `update public.protocol_progress
+     set completion_percent = 0,
+         current_phase_key = null,
+         completed_at = null,
+         updated_at = now()
+     where user_id = $1
+       and protocol_id = any($2::text[])`,
+    [userId, protocolIds]
+  );
 }
 
 async function markPurchaseClaimed(purchaseId: string, userId: string) {
@@ -380,6 +409,7 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
         (user_id is null and claimed_at is null)
         or user_id = ${user.id}
       )
+    order by purchased_at asc
   `) as PurchaseRow[];
 
   const result: ClaimResult = {
@@ -406,6 +436,7 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
       mapping
     );
     if (!purchase.user_id || !purchase.claimed_at) {
+      await resetProgressForNewPurchase(user.id, mapping);
       await markPurchaseClaimed(purchase.id, user.id);
       result.claimedCount += 1;
     }

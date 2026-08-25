@@ -7,6 +7,7 @@ export type EffectiveAccessRow = {
   protocol_id: string | null;
   expires_at: string | null;
   grant_child_protocols: boolean;
+  purchased_at: string | null;
 };
 
 function addDays(date: Date, days: number) {
@@ -30,7 +31,13 @@ export function accessEffectiveEndsAt(
 
   if (row.protocol_id) {
     const completedAt = progressByProtocol.get(row.protocol_id);
-    if (completedAt) dates.push(addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS));
+    const completionBelongsToCurrentPurchase =
+      completedAt &&
+      (!row.purchased_at || new Date(completedAt).getTime() >= new Date(row.purchased_at).getTime());
+
+    if (completionBelongsToCurrentPurchase) {
+      dates.push(addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS));
+    }
   }
 
   return earliestDate(dates);
@@ -59,11 +66,13 @@ export async function getEffectiveAccessRows(userId: string, emailNormalized: st
   const sql = getSql();
 
   const entitlementRows = (await sql`
-    select entitlement_type::text, protocol_id, expires_at,
-           (entitlement_type = 'bundle') as grant_child_protocols
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
+    select pe.entitlement_type::text, pe.protocol_id, pe.expires_at,
+           (pe.entitlement_type = 'bundle') as grant_child_protocols,
+           coalesce(p.purchased_at, pe.starts_at) as purchased_at
+    from public.protocol_entitlements pe
+    left join public.purchases p on p.id = pe.purchase_id
+    where pe.user_id = ${userId}
+      and pe.status = 'active'
   `) as EffectiveAccessRow[];
 
   const woocommerceRows = (await sql`
@@ -72,7 +81,8 @@ export async function getEffectiveAccessRows(userId: string, emailNormalized: st
              when wpm.access_duration_days is null then null
              else p.purchased_at + (wpm.access_duration_days || ' days')::interval
            end as expires_at,
-           wpm.grant_child_protocols
+           wpm.grant_child_protocols,
+           p.purchased_at
     from public.purchases p
     join public.woocommerce_product_mappings wpm
       on wpm.woocommerce_product_id = p.woocommerce_product_id
@@ -90,7 +100,8 @@ export async function getEffectiveAccessRows(userId: string, emailNormalized: st
              when spm.access_duration_days is null then null
              else p.purchased_at + (spm.access_duration_days || ' days')::interval
            end as expires_at,
-           spm.grant_child_protocols
+           spm.grant_child_protocols,
+           p.purchased_at
     from public.purchases p
     join public.stripe_product_mappings spm
       on (
@@ -147,3 +158,4 @@ export async function userHasEffectiveProtocolAccess(
   const accessibleProtocolIds = await getAccessibleProtocolIds(userId, emailNormalized);
   return protocolIds.some((protocolId) => accessibleProtocolIds.includes(protocolId));
 }
+

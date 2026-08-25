@@ -36,10 +36,19 @@ Updated: August 25, 2026
 - A protected Cognitive Architecture PDF opened successfully through the production authentication flow.
 - Founder System Audit reports matching purchase data and active protocol access.
 - The retired Netlify Supabase variables have been deleted and the old Supabase healthcheck returns `404`.
+- Both retired Supabase projects have been deleted.
+- A final production audit confirmed zero orphaned purchases, orphaned entitlements, missing protocols, duplicate webhook events, duplicate WooCommerce mappings, expired-active entitlements, claim mismatches, or unmapped WooCommerce purchases.
+- Protocol detail content now requires server-side Clerk authentication, verified email, terms acceptance, and protocol-specific entitlement before the server sends it.
+- Netlify function tokens now enforce the production portal as the authorized Clerk origin and require a verified primary email before email-based purchase claims.
+- Terms acceptance is recorded through an authenticated server function in protected Clerk public metadata.
+- Repeat purchases renew the matching entitlement without shortening an existing access window and reset completion state for the newly purchased product.
+- The founder profile has an explicit Neon admin role so founder-facing practitioner and administrative backend checks agree with the interface.
+- The temporary access diagnostic and retired practitioner compatibility helper have been removed.
+- Production dependencies pass `npm audit` with zero known vulnerabilities, and the complete Next.js production build passes.
 
 ## Production Validation
 
-The Supabase-to-Neon and development-to-production Clerk transition is complete. The portal healthcheck reaches Neon, production sign-in works, the existing WooCommerce purchase is claimed, the purchased bundle opens, and protected downloads remain authenticated.
+The Supabase-to-Neon and development-to-production Clerk transition is complete. The portal healthcheck reaches Neon, production sign-in works, the existing WooCommerce purchase is claimed, the purchased bundle opens, and protected downloads remain authenticated. Both Supabase projects are deleted and no active runtime code or package depends on Supabase.
 
 The following are ordinary product-specific confirmations rather than transition blockers:
 
@@ -49,5 +58,9 @@ The following are ordinary product-specific confirmations rather than transition
 
 ## Retirement Boundary
 
-Supabase is no longer used by production. Its Netlify variables are deleted, its function endpoint is retired, and its project may be deleted after any desired archival export. The repository's `supabase/` folder remains historical reference only and must not be run against Neon.
+Supabase is no longer used by production. Its Netlify variables are deleted, its function endpoint is retired, and both projects have been deleted. The repository's `supabase/` folder remains historical reference only and must not be run against Neon.
+
+## Non-Transition Content Follow-Up
+
+- No separate Somatic Baseline Therapeutic Addendum PDF exists in the protected files. Its placeholder catalog record is inactive and should remain unpublished until a dedicated addendum file is approved.
 

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useAuth, useUser } from "@clerk/nextjs";
 import { usePortalAccess } from "@/lib/auth/portal-access";
 
 const TERMS_VERSION = "dc-portal-terms-v2-2025";
@@ -55,6 +56,8 @@ const termsSections = [
 type GateStatus = "checking" | "guest" | "required" | "accepted";
 
 export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { getToken } = useAuth();
   const { isLoaded, isSignedIn, user } = useUser();
   const portalAccess = usePortalAccess();
   const [status, setStatus] = useState<GateStatus>("checking");
@@ -72,8 +75,8 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
       return;
     }
 
-    setStatus(isSignedIn ? resolveStatus(user?.unsafeMetadata) : "guest");
-  }, [isLoaded, isSignedIn, user?.unsafeMetadata]);
+    setStatus(isSignedIn ? resolveStatus(user?.publicMetadata) : "guest");
+  }, [isLoaded, isSignedIn, user?.publicMetadata]);
 
   async function acceptTerms() {
     if (!checked || saving) return;
@@ -82,13 +85,14 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
     setError("");
 
     try {
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          dc_terms_version: TERMS_VERSION,
-          dc_terms_accepted_at: new Date().toISOString()
-        }
+      const token = await getToken();
+      const response = await fetch("/.netlify/functions/accept-terms", {
+        method: "POST",
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
       });
+
+      if (!response.ok) throw new Error("Terms acknowledgment could not be saved.");
+
       await user?.reload();
     } catch {
       setError("The acknowledgment could not be saved. Please refresh and try again.");
@@ -98,6 +102,7 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
 
     setSaving(false);
     setStatus("accepted");
+    router.refresh();
   }
 
   if (status === "checking") {
@@ -221,3 +226,4 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
     </section>
   );
 }
+

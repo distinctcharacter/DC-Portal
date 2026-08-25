@@ -282,12 +282,7 @@ async function recordPurchase(
 
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod === "GET") {
-    return jsonResponse(200, {
-      ok: true,
-      stage: "woocommerce_webhook_ready",
-      hasWebhookSecret: Boolean(process.env.WOOCOMMERCE_WEBHOOK_SECRET),
-      hasDatabaseUrl: Boolean(process.env.DATABASE_URL)
-    });
+    return jsonResponse(405, { error: "Method not allowed." });
   }
 
   if (event.httpMethod !== "POST") {
@@ -412,3 +407,4 @@ export async function handler(event: FunctionEvent) {
     });
   }
 }
+

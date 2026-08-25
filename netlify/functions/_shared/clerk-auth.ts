@@ -38,21 +38,29 @@ async function getClerkEmail(clerkUserId: string) {
 
   const payload = (await response.json()) as {
     primary_email_address_id?: string;
-    email_addresses?: Array<{ id: string; email_address: string }>;
+    email_addresses?: Array<{
+      id: string;
+      email_address: string;
+      verification?: { status?: string } | null;
+    }>;
     first_name?: string | null;
     last_name?: string | null;
   };
 
   const primaryEmail =
-    payload.email_addresses?.find((email) => email.id === payload.primary_email_address_id)?.email_address ??
-    payload.email_addresses?.[0]?.email_address;
+    payload.email_addresses?.find((email) => email.id === payload.primary_email_address_id) ??
+    payload.email_addresses?.[0];
 
   if (!primaryEmail) {
     throw new Error("Clerk account is missing an email address.");
   }
 
+  if (primaryEmail.verification?.status !== "verified") {
+    throw new Error("A verified email address is required.");
+  }
+
   return {
-    email: primaryEmail,
+    email: primaryEmail.email_address,
     fullName: [payload.first_name, payload.last_name].filter(Boolean).join(" ") || null
   };
 }
@@ -65,7 +73,10 @@ export async function requirePortalUser(headers: FunctionHeaders): Promise<Porta
   }
 
   const verified = await verifyToken(token, {
-    secretKey: process.env.CLERK_SECRET_KEY
+    secretKey: process.env.CLERK_SECRET_KEY,
+    authorizedParties: [
+      process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal.distinctcharacter.com"
+    ]
   });
 
   const clerkUserId = String(verified.sub ?? "");

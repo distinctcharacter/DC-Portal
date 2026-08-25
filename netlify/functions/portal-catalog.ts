@@ -15,19 +15,45 @@ export async function handler(event: FunctionEvent) {
   try {
     const user = await requirePortalUser(event.headers);
     const sql = getSql();
+    const accessIds = await getAccessibleProtocolIds(user.id, user.emailNormalized);
+    const roleRows = (await sql`
+      select role
+      from public.user_role_assignments
+      where user_id = ${user.id}
+    `) as Array<{ role: string }>;
+    const roles = roleRows.map((row) => row.role);
+    const isAdmin = roles.includes("admin");
+    const practitionerRows =
+      isAdmin || !roles.includes("practitioner")
+        ? []
+        : await sql`
+            select pe.id
+            from public.protocol_entitlements pe
+            join public.practitioner_profiles pp on pp.user_id = pe.user_id
+            where pe.user_id = ${user.id}
+              and pe.entitlement_type = 'practitioner_layer'
+              and pe.status = 'active'
+              and (pe.expires_at is null or pe.expires_at > now())
+              and pp.access_status = 'active'
+            limit 1
+          `;
+    const hasPractitionerAccess = isAdmin || practitionerRows.length > 0;
 
-    const [protocols, resources, progress, practiceLogs, accessIds] = await Promise.all([
+    const [protocols, resources, progress, practiceLogs] = await Promise.all([
       sql`
         select id, slug, title, phase_label, status, sequence_order, parent_protocol_id, description
         from public.protocols
         order by sequence_order asc
       `,
-      sql`
-        select id, title, asset_type, protocol_id, public_path, audience, practitioner_only
-        from public.resource_assets
-        where active = true
-        order by created_at asc
-      `,
+      sql.query(
+        `select id, title, asset_type, protocol_id, public_path, audience, practitioner_only
+         from public.resource_assets
+         where active = true
+           and (protocol_id is null or protocol_id = any($1::text[]))
+           and (practitioner_only = false or $2::boolean)
+         order by created_at asc`,
+        [accessIds, hasPractitionerAccess]
+      ),
       sql`
         select protocol_id, completion_percent, current_phase_key, last_activity_at, completed_at
         from public.protocol_progress
@@ -39,8 +65,7 @@ export async function handler(event: FunctionEvent) {
         where user_id = ${user.id}
         order by created_at desc
         limit 5
-      `,
-      getAccessibleProtocolIds(user.id, user.emailNormalized)
+      `
     ]);
 
     return jsonResponse(200, {
@@ -56,3 +81,4 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }
+

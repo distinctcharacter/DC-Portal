@@ -15,6 +15,7 @@ import {
 } from "@/data/mock";
 import { canViewTherapeuticAddenda } from "@/lib/access";
 import { canonicalProtocolSlug } from "@/lib/protocol-slugs";
+import { getServerProtocolAccess } from "@/lib/auth/server-protocol-access";
 
 type GenericProtocolPage = {
   id: string;
@@ -338,6 +339,33 @@ export default async function ProtocolPage({
           <Link className="button primary" href="/">
             Return to Dashboard
           </Link>
+        </section>
+      </AppShell>
+    );
+  }
+
+  const protocolId = genericPage?.id ?? (isEnterpriseIp ? "DC-P07-EIP" : "DC-P01-SBP");
+  const accessProtocolIds = genericPage?.accessProtocolIds ?? [protocolId];
+  const serverAccess = await getServerProtocolAccess(accessProtocolIds);
+
+  if (serverAccess !== "allowed") {
+    return (
+      <AppShell sessionRole={role}>
+        <section className="content-section">
+          <SectionHeader
+            eyebrow="Protocol Access"
+            title={serverAccess === "denied" ? "Protocol Currently Locked" : "Preparing Protocol Access"}
+            copy={
+              serverAccess === "denied"
+                ? "This protocol is not active for this account."
+                : "Sign in and confirm your portal access to continue."
+            }
+          />
+          {serverAccess === "denied" ? (
+            <Link className="button primary" href="/protocols">
+              Return to Protocols
+            </Link>
+          ) : null}
         </section>
       </AppShell>
     );
@@ -718,3 +746,4 @@ export default async function ProtocolPage({
     </AppShell>
   );
 }
+
