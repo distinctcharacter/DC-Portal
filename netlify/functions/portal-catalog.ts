@@ -1,77 +1,11 @@
 import { requirePortalUser } from "./_shared/clerk-auth";
+import { getAccessibleProtocolIds } from "./_shared/access-resolver";
 import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
   headers: Record<string, string | undefined>;
 };
-
-type EntitlementRow = {
-  entitlement_type: string;
-  protocol_id: string | null;
-  expires_at: string | null;
-};
-
-const COMPLETION_CLOSEOUT_DAYS = 7;
-
-function entitlementIsActive(row: { expires_at: string | null }) {
-  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function completionCloseoutIsActive(protocolId: string | null, completedByProtocol: Map<string, string | null>) {
-  if (!protocolId) return true;
-  const completedAt = completedByProtocol.get(protocolId);
-  if (!completedAt) return true;
-  return addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
-}
-
-async function expandedProtocolAccess(userId: string) {
-  const sql = getSql();
-  const entitlements = (await sql`
-    select entitlement_type, protocol_id, expires_at
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
-  `) as EntitlementRow[];
-
-  const progressRows = (await sql`
-    select protocol_id, completed_at
-    from public.protocol_progress
-    where user_id = ${userId}
-  `) as Array<{ protocol_id: string; completed_at: string | null }>;
-
-  const completedByProtocol = new Map(progressRows.map((row) => [row.protocol_id, row.completed_at]));
-  const activeEntitlements = entitlements.filter(
-    (row) => entitlementIsActive(row) && completionCloseoutIsActive(row.protocol_id, completedByProtocol)
-  );
-  const bundleProtocolIds = activeEntitlements
-    .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
-    .map((row) => row.protocol_id as string);
-  const accessibleProtocolIds = new Set<string>();
-
-  for (const entitlement of activeEntitlements) {
-    if (entitlement.protocol_id) accessibleProtocolIds.add(entitlement.protocol_id);
-  }
-
-  if (!bundleProtocolIds.length) return Array.from(accessibleProtocolIds);
-
-  const childRows = await sql.query(
-    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[])",
-    [bundleProtocolIds]
-  );
-
-  for (const child of childRows as Array<{ child_protocol_id: string }>) {
-    if (child.child_protocol_id) accessibleProtocolIds.add(child.child_protocol_id);
-  }
-
-  return Array.from(accessibleProtocolIds);
-}
 
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "GET") {
@@ -106,7 +40,7 @@ export async function handler(event: FunctionEvent) {
         order by created_at desc
         limit 5
       `,
-      expandedProtocolAccess(user.id)
+      getAccessibleProtocolIds(user.id, user.emailNormalized)
     ]);
 
     return jsonResponse(200, {

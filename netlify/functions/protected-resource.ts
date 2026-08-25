@@ -1,6 +1,10 @@
 import { createReadStream, existsSync } from "fs";
 import { basename, join, resolve } from "path";
 import { requirePortalUser } from "./_shared/clerk-auth";
+import {
+  getAccessibleProtocolIds,
+  userHasEffectiveProtocolAccess
+} from "./_shared/access-resolver";
 import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
@@ -16,7 +20,6 @@ type AccessRule = {
 };
 
 const RESOURCE_ROOT = resolve(process.cwd(), "protected-resources", "resources");
-const COMPLETION_CLOSEOUT_DAYS = 7;
 
 const RESOURCE_ACCESS: Record<string, AccessRule> = {
   "12-dimensions-wellness.pdf": { authenticated: true },
@@ -51,44 +54,6 @@ function sanitizeFileName(value: string | undefined) {
   return fileName;
 }
 
-function entitlementIsActive(row: { expires_at: string | null }) {
-  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
-}
-
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-async function completedProtocolMap(userId: string) {
-  const sql = getSql();
-  const rows = await sql`
-    select protocol_id, completed_at
-    from public.protocol_progress
-    where user_id = ${userId}
-  `;
-
-  return new Map((rows as Array<{ protocol_id: string; completed_at: string | null }>).map((row) => [
-    row.protocol_id,
-    row.completed_at
-  ]));
-}
-
-function completionCloseoutIsActive(protocolId: string | null, completedByProtocol: Map<string, string | null>) {
-  if (!protocolId) return true;
-  const completedAt = completedByProtocol.get(protocolId);
-  if (!completedAt) return true;
-  return addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
-}
-
-function entitlementCurrentlyAvailable(
-  row: { protocol_id: string | null; expires_at: string | null },
-  completedByProtocol: Map<string, string | null>
-) {
-  return entitlementIsActive(row) && completionCloseoutIsActive(row.protocol_id, completedByProtocol);
-}
-
 async function streamToBuffer(stream: NodeJS.ReadableStream) {
   const chunks: Buffer[] = [];
 
@@ -108,54 +73,6 @@ async function userRoles(userId: string) {
   `;
 
   return (rows as Array<{ role: string }>).map((row) => row.role);
-}
-
-async function userHasProtocolAccess(userId: string, protocolIds: string[]) {
-  if (!protocolIds.length) return false;
-  const sql = getSql();
-
-  const rows = await sql`
-    select entitlement_type, protocol_id, expires_at
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
-  `;
-
-  const completedByProtocol = await completedProtocolMap(userId);
-  const activeRows = (rows as Array<{ entitlement_type: string; protocol_id: string | null; expires_at: string | null }>).filter(
-    (row) => entitlementCurrentlyAvailable(row, completedByProtocol)
-  );
-
-  if (activeRows.some((row) => row.protocol_id && protocolIds.includes(row.protocol_id))) return true;
-
-  const bundleProtocolIds = activeRows
-    .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
-    .map((row) => row.protocol_id as string);
-
-  if (!bundleProtocolIds.length) return false;
-
-  const childRows = await sql.query(
-    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[]) and child_protocol_id = any($2::text[]) limit 1",
-    [bundleProtocolIds, protocolIds]
-  );
-
-  return Boolean(childRows.length);
-}
-
-async function userHasActivePortalEntitlement(userId: string) {
-  const sql = getSql();
-  const rows = await sql`
-    select id, protocol_id, expires_at
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
-  `;
-
-  const completedByProtocol = await completedProtocolMap(userId);
-
-  return (rows as Array<{ protocol_id: string | null; expires_at: string | null }>).some((row) =>
-    entitlementCurrentlyAvailable(row, completedByProtocol)
-  );
 }
 
 async function userHasPractitionerLayerAccess(userId: string, roles: string[]) {
@@ -194,11 +111,14 @@ export async function handler(event: FunctionEvent) {
     const user = await requirePortalUser(event.headers);
     const roles = await userRoles(user.id);
     const isAdmin = roles.includes("admin");
-    const hasActivePortalEntitlement = isAdmin || (await userHasActivePortalEntitlement(user.id));
+    const accessibleProtocolIds = await getAccessibleProtocolIds(user.id, user.emailNormalized);
+    const hasActivePortalEntitlement = isAdmin || accessibleProtocolIds.length > 0;
     const hasPractitionerLayerAccess = rule.practitionerOnly
       ? await userHasPractitionerLayerAccess(user.id, roles)
       : false;
-    const hasProtocolAccess = rule.protocolIds ? await userHasProtocolAccess(user.id, rule.protocolIds) : false;
+    const hasProtocolAccess = rule.protocolIds
+      ? await userHasEffectiveProtocolAccess(user.id, user.emailNormalized, rule.protocolIds)
+      : false;
 
     const allowed =
       isAdmin ||

@@ -1,4 +1,11 @@
 import { requirePortalUser } from "./_shared/clerk-auth";
+import {
+  accessEffectiveEndsAt,
+  accessRowIsCurrentlyAvailable,
+  getAccessibleProtocolIds,
+  getEffectiveAccessRows,
+  getProgressByProtocol
+} from "./_shared/access-resolver";
 import { getSql, jsonResponse, normalizeEmail } from "./_shared/neon";
 
 type FunctionEvent = {
@@ -8,18 +15,6 @@ type FunctionEvent = {
 
 const ROLE_PRIORITY = ["admin", "practitioner", "license_holder", "client"];
 const DEFAULT_FOUNDER_EMAILS = ["stephanie@granitefieldholdings.com"];
-const COMPLETION_CLOSEOUT_DAYS = 7;
-
-type EntitlementRow = {
-  entitlement_type: string;
-  protocol_id: string | null;
-  expires_at: string | null;
-};
-
-type ProgressRow = {
-  protocol_id: string;
-  completed_at: string | null;
-};
 
 function primaryRole(roles: string[]) {
   return ROLE_PRIORITY.find((role) => roles.includes(role)) ?? "client";
@@ -34,64 +29,9 @@ function isFounderEmail(email: string | null | undefined) {
   return founderEmails().includes(normalizeEmail(email));
 }
 
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-function earliestDate(dates: Date[]) {
-  if (!dates.length) return null;
-  return new Date(Math.min(...dates.map((date) => date.getTime())));
-}
-
 function latestDate(dates: Date[]) {
   if (!dates.length) return null;
   return new Date(Math.max(...dates.map((date) => date.getTime())));
-}
-
-function entitlementEffectiveEndsAt(row: EntitlementRow, progressByProtocol: Map<string, string | null>) {
-  const dates: Date[] = [];
-
-  if (row.expires_at) dates.push(new Date(row.expires_at));
-
-  if (row.protocol_id) {
-    const completedAt = progressByProtocol.get(row.protocol_id);
-    if (completedAt) dates.push(addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS));
-  }
-
-  return earliestDate(dates);
-}
-
-function entitlementIsCurrentlyAvailable(row: EntitlementRow, progressByProtocol: Map<string, string | null>) {
-  const endsAt = entitlementEffectiveEndsAt(row, progressByProtocol);
-  return !endsAt || endsAt.getTime() > Date.now();
-}
-
-async function expandedProtocolIds(entitlementRows: EntitlementRow[]) {
-  const sql = getSql();
-  const ids = new Set<string>();
-
-  for (const row of entitlementRows) {
-    if (row.protocol_id) ids.add(row.protocol_id);
-  }
-
-  const bundleProtocolIds = entitlementRows
-    .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
-    .map((row) => row.protocol_id as string);
-
-  if (!bundleProtocolIds.length) return Array.from(ids);
-
-  const childRows = await sql.query(
-    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[])",
-    [bundleProtocolIds]
-  );
-
-  for (const row of childRows as Array<{ child_protocol_id: string }>) {
-    if (row.child_protocol_id) ids.add(row.child_protocol_id);
-  }
-
-  return Array.from(ids);
 }
 
 export async function handler(event: FunctionEvent) {
@@ -129,28 +69,15 @@ export async function handler(event: FunctionEvent) {
       ].filter(Boolean) as string[])
     );
 
-    const entitlementRows = (await sql`
-      select entitlement_type, protocol_id, expires_at
-      from public.protocol_entitlements
-      where user_id = ${user.id}
-        and status = 'active'
-    `) as EntitlementRow[];
-
-    const progressRows = (await sql`
-      select protocol_id, completed_at
-      from public.protocol_progress
-      where user_id = ${user.id}
-    `) as ProgressRow[];
-
-    const progressByProtocol = new Map(progressRows.map((row) => [row.protocol_id, row.completed_at]));
+    const progressByProtocol = await getProgressByProtocol(user.id);
     const isAdmin = roles.includes("admin");
     const hasPractitionerRole = roles.includes("practitioner");
     const hasLicenseHolderRole = roles.includes("license_holder");
-    const activeEntitlements = entitlementRows.filter((row) =>
-      entitlementIsCurrentlyAvailable(row, progressByProtocol)
+    const activeEntitlements = (await getEffectiveAccessRows(user.id, user.emailNormalized)).filter((row) =>
+      accessRowIsCurrentlyAvailable(row, progressByProtocol)
     );
     const entitlementEndDates = activeEntitlements
-      .map((row) => entitlementEffectiveEndsAt(row, progressByProtocol))
+      .map((row) => accessEffectiveEndsAt(row, progressByProtocol))
       .filter(Boolean) as Date[];
     const activeAccessUntil = latestDate(entitlementEndDates);
     const hasPractitionerEntitlement = activeEntitlements.some(
@@ -189,7 +116,7 @@ export async function handler(event: FunctionEvent) {
 
     const canAccessLicenseLayer =
       isAdmin || (hasLicenseHolderRole && (hasLicenseSeatEntitlement || hasActiveLicenseMembership));
-    const protocolIds = await expandedProtocolIds(activeEntitlements);
+    const protocolIds = await getAccessibleProtocolIds(user.id, user.emailNormalized);
 
     return jsonResponse(200, {
       ok: true,

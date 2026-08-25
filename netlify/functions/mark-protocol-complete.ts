@@ -1,16 +1,11 @@
 import { requirePortalUser } from "./_shared/clerk-auth";
+import { userHasEffectiveProtocolAccess } from "./_shared/access-resolver";
 import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
   headers: Record<string, string | undefined>;
   body?: string | null;
-};
-
-type EntitlementRow = {
-  entitlement_type: string;
-  protocol_id: string | null;
-  expires_at: string | null;
 };
 
 const COMPLETION_CLOSEOUT_DAYS = 7;
@@ -36,10 +31,6 @@ function addDays(date: Date, days: number) {
   return result;
 }
 
-function entitlementIsActive(row: EntitlementRow) {
-  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
-}
-
 async function userIsAdmin(userId: string) {
   const sql = getSql();
   const rows = await sql`
@@ -51,33 +42,6 @@ async function userIsAdmin(userId: string) {
   `;
 
   return Boolean(rows.length);
-}
-
-async function userHasProtocolAccess(userId: string, protocolId: string) {
-  const sql = getSql();
-  const entitlements = (await sql`
-    select entitlement_type, protocol_id, expires_at
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
-  `) as EntitlementRow[];
-
-  const activeRows = entitlements.filter(entitlementIsActive);
-
-  if (activeRows.some((row) => row.protocol_id === protocolId)) return true;
-
-  const bundleProtocolIds = activeRows
-    .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
-    .map((row) => row.protocol_id as string);
-
-  if (!bundleProtocolIds.length) return false;
-
-  const childRows = await sql.query(
-    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[]) and child_protocol_id = $2 limit 1",
-    [bundleProtocolIds, protocolId]
-  );
-
-  return Boolean(childRows.length);
 }
 
 async function expireCompletedProtocolEntitlements(userId: string, protocolId: string, closeoutEndsAt: string) {
@@ -132,7 +96,8 @@ export async function handler(event: FunctionEvent) {
   try {
     const user = await requirePortalUser(event.headers);
     const isAdmin = await userIsAdmin(user.id);
-    const hasAccess = isAdmin || (await userHasProtocolAccess(user.id, protocolId));
+    const hasAccess =
+      isAdmin || (await userHasEffectiveProtocolAccess(user.id, user.emailNormalized, [protocolId]));
 
     if (!hasAccess) {
       return jsonResponse(403, { error: "This protocol is not active for this account." });

@@ -1,4 +1,5 @@
 import { requirePortalUser } from "./_shared/clerk-auth";
+import { userHasEffectiveProtocolAccess } from "./_shared/access-resolver";
 import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
@@ -8,7 +9,6 @@ type FunctionEvent = {
 };
 
 const SOMATIC_BASELINE_PROTOCOL_ID = "DC-P01-SBP";
-const COMPLETION_CLOSEOUT_DAYS = 7;
 
 function cleanText(value: unknown, maxLength: number) {
   if (typeof value !== "string") return "";
@@ -25,33 +25,7 @@ function parseBody(body: string | null | undefined) {
   }
 }
 
-function addDays(date: Date, days: number) {
-  const result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
-async function protocolCompletionCloseoutIsActive(userId: string) {
-  const sql = getSql();
-  const rows = await sql`
-    select completed_at
-    from public.protocol_progress
-    where user_id = ${userId}
-      and protocol_id = ${SOMATIC_BASELINE_PROTOCOL_ID}
-    limit 1
-  `;
-
-  const completedAt = (rows[0] as { completed_at?: string | null } | undefined)?.completed_at;
-  if (!completedAt) return true;
-
-  return addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
-}
-
-function entitlementIsActive(row: { expires_at: string | null }) {
-  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
-}
-
-async function userHasSomaticAccess(userId: string) {
+async function userHasSomaticAccess(userId: string, emailNormalized: string) {
   const sql = getSql();
 
   const roleRows = await sql`
@@ -61,36 +35,7 @@ async function userHasSomaticAccess(userId: string) {
   `;
 
   if ((roleRows as Array<{ role: string }>).some((row) => row.role === "admin")) return true;
-  if (!(await protocolCompletionCloseoutIsActive(userId))) return false;
-
-  const directRows = await sql`
-    select id, expires_at
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
-      and protocol_id = ${SOMATIC_BASELINE_PROTOCOL_ID}
-  `;
-
-  if ((directRows as Array<{ expires_at: string | null }>).some(entitlementIsActive)) return true;
-
-  const bundleRows = (await sql`
-    select protocol_id, expires_at
-    from public.protocol_entitlements
-    where user_id = ${userId}
-      and status = 'active'
-      and entitlement_type = 'bundle'
-      and protocol_id is not null
-  `) as Array<{ protocol_id: string; expires_at: string | null }>;
-
-  const bundleProtocolIds = bundleRows.filter(entitlementIsActive).map((row) => row.protocol_id);
-  if (!bundleProtocolIds.length) return false;
-
-  const childRows = await sql.query(
-    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[]) and child_protocol_id = $2 limit 1",
-    [bundleProtocolIds, SOMATIC_BASELINE_PROTOCOL_ID]
-  );
-
-  return Boolean(childRows.length);
+  return userHasEffectiveProtocolAccess(userId, emailNormalized, [SOMATIC_BASELINE_PROTOCOL_ID]);
 }
 
 async function updateProtocolProgress(userId: string) {
@@ -148,7 +93,7 @@ export async function handler(event: FunctionEvent) {
 
   try {
     const user = await requirePortalUser(event.headers);
-    const hasAccess = await userHasSomaticAccess(user.id);
+    const hasAccess = await userHasSomaticAccess(user.id, user.emailNormalized);
 
     if (!hasAccess) {
       return jsonResponse(403, {
