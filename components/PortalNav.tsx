@@ -27,6 +27,7 @@ export function PortalNav() {
         </Link>
       ))}
       {showFounder ? <Link href="/founder/orders">Orders</Link> : null}
+      {showFounder ? <Link href="/founder/system-audit">System Audit</Link> : null}
     </nav>
   );
 }
