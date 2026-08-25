@@ -37,24 +37,11 @@
   ],
   "exclude": [
     "node_modules",
-    "_shared",
-    "components/Supabase*.ts",
-    "components/Supabase*.tsx",
-    "claim-purchases.ts",
-    "founder-orders.ts",
-    "mark-protocol-complete.ts",
-    "neon-clerk-healthcheck.ts",
-    "portal-access.ts",
-    "portal-catalog.ts",
-    "practitioner-workspace.ts",
-    "protected-resource.ts",
-    "save-practice-log.ts",
-    "save-practitioner-note.ts",
-    "stripe-webhook.ts",
-    "supabase-healthcheck.ts",
-    "woocommerce-webhook.ts",
+    "supabase",
+    "distinct-character-protocol-portal-mvp",
     "UPLOAD_*",
     "UPLOAD_THIS_TO_GITHUB",
     "github-upload"
   ]
 }
+
