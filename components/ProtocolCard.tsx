@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Protocol } from "@/data/mock";
 import { canOpenProtocol } from "@/lib/access";
+import { protocolHref } from "@/lib/protocol-slugs";
 import { AccessBadge } from "./AccessBadge";
 
 export function ProtocolCard({ protocol }: { protocol: Protocol }) {
@@ -26,7 +27,7 @@ export function ProtocolCard({ protocol }: { protocol: Protocol }) {
       </div>
       <p className="next-action">{protocol.nextAction}</p>
       {open ? (
-        <Link className="button primary" href={`/protocols/${protocol.slug}`}>
+        <Link className="button primary" href={protocolHref(protocol.slug)}>
           Continue Protocol
         </Link>
       ) : (

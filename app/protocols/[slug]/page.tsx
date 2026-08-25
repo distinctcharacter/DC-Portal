@@ -14,6 +14,7 @@ import {
   type Role
 } from "@/data/mock";
 import { canViewTherapeuticAddenda } from "@/lib/access";
+import { canonicalProtocolSlug } from "@/lib/protocol-slugs";
 
 type GenericProtocolPage = {
   id: string;
@@ -315,9 +316,10 @@ export default function ProtocolPage({
 }: {
   params: { slug: string };
 }) {
-  const isSomatic = params.slug === "somatic-baseline";
-  const isEnterpriseIp = params.slug === "enterprise-ip-mastermind";
-  const genericPage = genericProtocolPages[params.slug];
+  const slug = canonicalProtocolSlug(params.slug);
+  const isSomatic = slug === "somatic-baseline";
+  const isEnterpriseIp = slug === "enterprise-ip-mastermind";
+  const genericPage = genericProtocolPages[slug];
   const role: Role = "client";
   const canComposeEnterpriseNotes = false;
   const canViewAddendum = canViewTherapeuticAddenda(role);
