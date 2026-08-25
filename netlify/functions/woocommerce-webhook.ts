@@ -294,13 +294,22 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(405, { error: "Method not allowed." });
   }
 
+  const eventType = getHeader(event.headers, "x-wc-webhook-topic") || "order.updated";
+  const rawBody = getRawBody(event);
+
+  if (eventType.toLowerCase().includes("ping") || !rawBody.trim()) {
+    return jsonResponse(200, {
+      ok: true,
+      status: "setup_ping_accepted"
+    });
+  }
+
   const webhookSecret = process.env.WOOCOMMERCE_WEBHOOK_SECRET?.trim();
 
   if (!webhookSecret) {
     return jsonResponse(500, { ok: false, error: "Missing WOOCOMMERCE_WEBHOOK_SECRET." });
   }
 
-  const rawBody = getRawBody(event);
   const signature = getHeader(event.headers, "x-wc-webhook-signature");
 
   if (!verifyWooSignature(rawBody, signature, webhookSecret)) {
@@ -315,7 +324,6 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(400, { ok: false, error: "Invalid WooCommerce payload." });
   }
 
-  const eventType = getHeader(event.headers, "x-wc-webhook-topic") || "order.updated";
   const eventId = providerEventId(event.headers, order);
 
   try {
