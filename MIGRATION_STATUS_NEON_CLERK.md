@@ -27,6 +27,7 @@ Updated: August 25, 2026
 - Supabase runtime packages and active imports have been removed.
 - Purchase-linked access expiration is calculated from the purchase date, not the later account-claim date.
 - The Clerk middleware restricts accepted production origins to the portal domain.
+- A production Clerk account reconnects to the existing Neon profile by verified email, preserving purchases, roles, entitlements, progress, and founder records when Clerk user IDs change.
 
 ## Remaining Validation
 

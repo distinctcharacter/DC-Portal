@@ -77,30 +77,47 @@ export async function requirePortalUser(headers: FunctionHeaders): Promise<Porta
   const { email, fullName } = await getClerkEmail(clerkUserId);
   const emailNormalized = normalizeEmail(email);
   const sql = getSql();
-  const profileId = clerkUserId;
-
-  await sql`
-    insert into public.profiles (
-      id,
-      clerk_user_id,
-      email,
-      full_name,
-      last_login_at
-    )
-    values (
-      ${profileId},
-      ${clerkUserId},
-      ${email},
-      ${fullName},
-      now()
-    )
-    on conflict (clerk_user_id)
-    do update set
-      email = excluded.email,
-      full_name = coalesce(excluded.full_name, public.profiles.full_name),
-      last_login_at = now(),
-      updated_at = now()
+  const existingProfiles = await sql`
+    select id, clerk_user_id
+    from public.profiles
+    where clerk_user_id = ${clerkUserId}
+       or email_normalized = ${emailNormalized}
+    order by case when clerk_user_id = ${clerkUserId} then 0 else 1 end
+    limit 1
   `;
+  const existingProfile = existingProfiles[0] as
+    | { id: string; clerk_user_id: string | null }
+    | undefined;
+  const profileId = existingProfile?.id ?? clerkUserId;
+
+  if (existingProfile) {
+    await sql`
+      update public.profiles
+      set clerk_user_id = ${clerkUserId},
+          email = ${email},
+          full_name = coalesce(${fullName}, full_name),
+          last_login_at = now(),
+          updated_at = now()
+      where id = ${profileId}
+    `;
+  } else {
+    await sql`
+      insert into public.profiles (
+        id,
+        clerk_user_id,
+        email,
+        full_name,
+        last_login_at
+      )
+      values (
+        ${profileId},
+        ${clerkUserId},
+        ${email},
+        ${fullName},
+        now()
+      )
+    `;
+  }
 
   return {
     id: profileId,
@@ -109,3 +126,4 @@ export async function requirePortalUser(headers: FunctionHeaders): Promise<Porta
     emailNormalized
   };
 }
+
