@@ -311,12 +311,13 @@ const genericProtocolPages: Record<string, GenericProtocolPage> = {
   }
 };
 
-export default function ProtocolPage({
+export default async function ProtocolPage({
   params
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const slug = canonicalProtocolSlug(params.slug);
+  const { slug: rawSlug } = await params;
+  const slug = canonicalProtocolSlug(rawSlug);
   const isSomatic = slug === "somatic-baseline";
   const isEnterpriseIp = slug === "enterprise-ip-mastermind";
   const genericPage = genericProtocolPages[slug];
