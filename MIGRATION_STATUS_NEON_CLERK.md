@@ -31,20 +31,23 @@ Updated: August 25, 2026
 - A direct Neon audit confirmed all eight WooCommerce mappings are active, all bundle children exist, and there are no duplicate mappings or orphaned purchase/access records.
 - Founder System Audit treats a failed WooCommerce delivery as resolved when a later delivery for the same order processes successfully.
 - The production Clerk Frontend API domain is pre-authorized by the portal content security policy.
+- Clerk Production is active on `portal.distinctcharacter.com` with verified DNS, issued SSL certificates, and live API keys.
+- The founder production account reconnected to the original Neon profile and retained its purchase and protocol access.
+- A protected Cognitive Architecture PDF opened successfully through the production authentication flow.
+- Founder System Audit reports matching purchase data and active protocol access.
+- The retired Netlify Supabase variables have been deleted and the old Supabase healthcheck returns `404`.
 
-## Remaining Validation
+## Production Validation
 
-The live portal is currently using Clerk development keys (`pk_test_` / `sk_test_`). Before public customer acquisition, activate the Clerk production instance for `portal.distinctcharacter.com`, replace both Clerk keys in Netlify with `pk_live_` / `sk_live_` values, and redeploy.
+The Supabase-to-Neon and development-to-production Clerk transition is complete. The portal healthcheck reaches Neon, production sign-in works, the existing WooCommerce purchase is claimed, the purchased bundle opens, and protected downloads remain authenticated.
 
-After that key change, these are workflow confirmations rather than migration construction:
+The following are ordinary product-specific confirmations rather than transition blockers:
 
-1. Open one protected PDF while signed in and confirm it loads.
-2. Save one practice-log entry and confirm the saved message appears.
-3. Confirm the completion panel loads without marking the paid test protocol complete.
-4. Confirm the Practitioner page stays locked for a normal client account.
-5. When the first unrelated customer purchases, confirm the order appears in Founder Orders and the purchased product opens.
+1. Save a practice-log entry when an account with Somatic Baseline access is available.
+2. When the first unrelated customer purchases, confirm the order appears in Founder Orders and the purchased product opens.
+3. Confirm any approved practitioner account receives its separate role, entitlement, and active practitioner profile before practitioner tools are used.
 
 ## Retirement Boundary
 
-The Supabase project and old Netlify Supabase variables may be removed only after the protected download, practice-log, and completion-panel checks above pass. The repository's `supabase/` folder is historical reference only and is not used by production.
+Supabase is no longer used by production. Its Netlify variables are deleted, its function endpoint is retired, and its project may be deleted after any desired archival export. The repository's `supabase/` folder remains historical reference only and must not be run against Neon.
 
