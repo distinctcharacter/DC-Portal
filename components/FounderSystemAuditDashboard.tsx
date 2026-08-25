@@ -62,11 +62,10 @@ function valueText(value: unknown) {
 }
 
 function productLabel(row: Record<string, unknown>) {
-  return (
-    valueText(row.product_display_name) ||
-    valueText(row.internal_product_key) ||
-    valueText(row.woocommerce_product_id)
-  );
+  const displayName = row.product_display_name ? String(row.product_display_name) : "";
+  const internalKey = row.internal_product_key ? String(row.internal_product_key) : "";
+  const productId = row.woocommerce_product_id ? String(row.woocommerce_product_id) : "";
+  return displayName || internalKey || productId || "Not recorded";
 }
 
 function statusClass(status: unknown) {
