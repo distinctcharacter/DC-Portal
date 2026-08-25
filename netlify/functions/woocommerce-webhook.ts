@@ -313,7 +313,19 @@ export async function handler(event: FunctionEvent) {
   const signature = getHeader(event.headers, "x-wc-webhook-signature");
 
   if (!verifyWooSignature(rawBody, signature, webhookSecret)) {
-    return jsonResponse(400, { ok: false, error: "Invalid WooCommerce signature." });
+    console.warn(
+      "woocommerce-webhook signature rejected",
+      JSON.stringify({
+        topic: eventType,
+        hasSignature: Boolean(signature),
+        bodyLength: rawBody.length
+      })
+    );
+
+    return jsonResponse(200, {
+      ok: true,
+      status: "signature_rejected_not_processed"
+    });
   }
 
   let order: WooCommerceOrder;
