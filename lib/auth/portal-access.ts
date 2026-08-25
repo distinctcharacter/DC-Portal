@@ -28,6 +28,11 @@ type PortalAccessPayload = {
   activeEntitlementCount?: number;
 };
 
+type PortalCatalogPayload = {
+  ok?: boolean;
+  accessibleProtocolIds?: string[];
+};
+
 function emptyAccess(fallbackRole: Role): PortalAccessState {
   return {
     loading: false,
@@ -67,30 +72,53 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
         return;
       }
 
-      const response = await fetch("/.netlify/functions/portal-access", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const authHeaders = {
+        Authorization: `Bearer ${token}`
+      };
 
-      if (!response.ok) {
+      await fetch("/.netlify/functions/claim-purchases", {
+        method: "POST",
+        headers: authHeaders
+      }).catch(() => null);
+
+      const [accessResponse, catalogResponse] = await Promise.all([
+        fetch("/.netlify/functions/portal-access", {
+          headers: authHeaders
+        }),
+        fetch("/.netlify/functions/portal-catalog", {
+          headers: authHeaders
+        }).catch(() => null)
+      ]);
+
+      if (!accessResponse.ok && !catalogResponse?.ok) {
         if (!cancelled) setState(emptyAccess(fallbackRole));
         return;
       }
 
-      const payload = (await response.json()) as PortalAccessPayload;
+      const accessPayload = accessResponse.ok
+        ? ((await accessResponse.json()) as PortalAccessPayload)
+        : {};
+      const catalogPayload = catalogResponse?.ok
+        ? ((await catalogResponse.json()) as PortalCatalogPayload)
+        : {};
+      const protocolIds = Array.from(
+        new Set([
+          ...(accessPayload.protocolIds ?? []),
+          ...(catalogPayload.accessibleProtocolIds ?? [])
+        ])
+      );
 
       if (!cancelled) {
         setState({
           loading: false,
-          role: payload.role ?? fallbackRole,
-          roles: payload.roles?.length ? payload.roles : [payload.role ?? fallbackRole],
-          protocolIds: payload.protocolIds ?? [],
-          canAccessPractitionerLayer: Boolean(payload.canAccessPractitionerLayer),
-          canAccessLicenseLayer: Boolean(payload.canAccessLicenseLayer),
-          hasActivePortalAccess: Boolean(payload.hasActivePortalAccess),
-          activeAccessUntil: payload.activeAccessUntil ?? null,
-          activeEntitlementCount: payload.activeEntitlementCount ?? 0
+          role: accessPayload.role ?? fallbackRole,
+          roles: accessPayload.roles?.length ? accessPayload.roles : [accessPayload.role ?? fallbackRole],
+          protocolIds,
+          canAccessPractitionerLayer: Boolean(accessPayload.canAccessPractitionerLayer),
+          canAccessLicenseLayer: Boolean(accessPayload.canAccessLicenseLayer),
+          hasActivePortalAccess: Boolean(accessPayload.hasActivePortalAccess || protocolIds.length > 0),
+          activeAccessUntil: accessPayload.activeAccessUntil ?? null,
+          activeEntitlementCount: accessPayload.activeEntitlementCount ?? protocolIds.length
         });
       }
     }
