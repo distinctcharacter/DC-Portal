@@ -71,6 +71,8 @@ export function PortalProtocolGrid() {
   const [rows, setRows] = useState<ProtocolRow[]>([]);
   const [accessibleProtocolIds, setAccessibleProtocolIds] = useState<Set<string>>(new Set());
   const [progressRows, setProgressRows] = useState<ProtocolProgressRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -80,24 +82,47 @@ export function PortalProtocolGrid() {
       const token = await getToken();
 
       if (!token) {
-        return;
-      }
-
-      const response = await fetch("/.netlify/functions/portal-catalog", {
-        headers: {
-          Authorization: `Bearer ${token}`
+        if (mounted) {
+          setError("Sign in to view your protocol library.");
+          setLoading(false);
         }
-      });
-
-      if (!mounted || !response.ok) {
         return;
       }
 
-      const payload = (await response.json()) as PortalCatalogPayload;
+      try {
+        const response = await fetch("/.netlify/functions/portal-catalog", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
 
-      setAccessibleProtocolIds(new Set(payload.accessibleProtocolIds ?? []));
-      setProgressRows(payload.progress ?? []);
-      setRows(payload.protocols ?? []);
+        if (!mounted) return;
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          setError(body.error ?? "Protocol library could not be loaded.");
+          setLoading(false);
+          return;
+        }
+
+        const payload = (await response.json()) as PortalCatalogPayload;
+
+        setAccessibleProtocolIds(new Set(payload.accessibleProtocolIds ?? []));
+        setProgressRows(payload.progress ?? []);
+        setRows(payload.protocols ?? []);
+        setError("");
+        setLoading(false);
+      } catch {
+        if (!mounted) return;
+        setError("Protocol library could not be loaded.");
+        setLoading(false);
+      }
+    }
+
+    if (isLoaded && !isSignedIn) {
+      setError("Sign in to view your protocol library.");
+      setLoading(false);
+      return;
     }
 
     loadProtocols();
@@ -108,7 +133,7 @@ export function PortalProtocolGrid() {
   }, [getToken, isLoaded, isSignedIn]);
 
   const displayProtocols = useMemo(() => {
-    if (!rows.length) return mockProtocols;
+    if (!rows.length) return [];
     const progressByProtocol = new Map(progressRows.map((row) => [row.protocol_id, row]));
 
     return rows.map((row) => {
@@ -119,11 +144,31 @@ export function PortalProtocolGrid() {
 
   return (
     <>
-      <div className="protocol-grid">
-        {displayProtocols.map((protocol) => (
-          <ProtocolCard protocol={protocol} key={protocol.id} />
-        ))}
-      </div>
+      {loading ? (
+        <section className="placeholder-panel">
+          <span className="eyebrow">Protocol Library</span>
+          <h2>Loading your protocol library.</h2>
+          <p>Your portal is checking active products and protocol availability.</p>
+        </section>
+      ) : error ? (
+        <section className="placeholder-panel">
+          <span className="eyebrow">Protocol Library</span>
+          <h2>Protocol library is unavailable.</h2>
+          <p>{error}</p>
+        </section>
+      ) : displayProtocols.length ? (
+        <div className="protocol-grid">
+          {displayProtocols.map((protocol) => (
+            <ProtocolCard protocol={protocol} key={protocol.id} />
+          ))}
+        </div>
+      ) : (
+        <section className="placeholder-panel">
+          <span className="eyebrow">Protocol Library</span>
+          <h2>Protocol library is temporarily unavailable.</h2>
+          <p>Please try again later or contact support if access was recently purchased.</p>
+        </section>
+      )}
     </>
   );
 }
