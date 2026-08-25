@@ -100,6 +100,27 @@ function lineItemProductIds(payload: Record<string, unknown> | null) {
     .filter(Boolean);
 }
 
+function webhookOrderId(event: WebhookRow) {
+  const orderId = event.payload?.id;
+  return orderId === null || orderId === undefined ? null : String(orderId);
+}
+
+function unresolvedWebhookRows(webhookRows: WebhookRow[], status: "failed" | "received") {
+  return webhookRows.filter((event) => {
+    if (event.processing_status !== status) return false;
+
+    const orderId = webhookOrderId(event);
+    if (!orderId) return true;
+
+    return !webhookRows.some(
+      (candidate) =>
+        candidate.processing_status === "processed" &&
+        webhookOrderId(candidate) === orderId &&
+        new Date(candidate.created_at).getTime() >= new Date(event.created_at).getTime()
+    );
+  });
+}
+
 function buildFindings({
   purchaseRows,
   entitlementRows,
@@ -139,7 +160,7 @@ function buildFindings({
     });
   }
 
-  const failedWebhookRows = webhookRows.filter((event) => event.processing_status === "failed");
+  const failedWebhookRows = unresolvedWebhookRows(webhookRows, "failed");
   if (failedWebhookRows.length) {
     findings.push({
       severity: "warning",
@@ -147,7 +168,7 @@ function buildFindings({
     });
   }
 
-  const receivedWebhookRows = webhookRows.filter((event) => event.processing_status === "received");
+  const receivedWebhookRows = unresolvedWebhookRows(webhookRows, "received");
   if (receivedWebhookRows.length) {
     findings.push({
       severity: "warning",
