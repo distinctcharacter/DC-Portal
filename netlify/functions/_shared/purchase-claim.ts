@@ -106,6 +106,26 @@ async function ensureRole(userId: string, role: string | null) {
     values (${userId}, ${role}, 'purchase')
     on conflict (user_id, role) do nothing
   `;
+
+  if (role === "practitioner") {
+    await sql`
+      insert into public.practitioner_profiles (
+        user_id,
+        access_status,
+        purchased_access
+      )
+      values (
+        ${userId},
+        'active',
+        true
+      )
+      on conflict (user_id)
+      do update set
+        access_status = 'active',
+        purchased_access = true,
+        updated_at = now()
+    `;
+  }
 }
 
 async function expireClosedEntitlementsFor(userId: string, entitlementType: string, protocolId: string | null) {
