@@ -1,12 +1,14 @@
-import type { SupabaseClient, User } from "@supabase/supabase-js";
-
-type DatabaseClient = SupabaseClient<any, "public", any>;
+import { getSql, normalizeEmail } from "./neon";
+import type { PortalUser } from "./clerk-auth";
 
 type PurchaseRow = {
   id: string;
   email: string;
+  source: string;
   stripe_product_id: string | null;
   stripe_price_id: string | null;
+  woocommerce_product_id: string | null;
+  woocommerce_variation_id: string | null;
 };
 
 type MappingRow = {
@@ -19,19 +21,11 @@ type MappingRow = {
   grant_child_protocols: boolean;
 };
 
-type BundleChildRow = {
-  child_protocol_id: string;
-};
-
 type ClaimResult = {
   claimedCount: number;
   claimed: string[];
   skipped: string[];
 };
-
-function normalizeEmail(email: string | null | undefined) {
-  return email?.trim().toLowerCase() ?? "";
-}
 
 function addDays(date: Date, days: number) {
   const result = new Date(date);
@@ -45,221 +39,251 @@ function subtractDays(date: Date, days: number) {
   return result.toISOString();
 }
 
-async function findMapping(admin: DatabaseClient, purchase: PurchaseRow) {
-  if (purchase.stripe_price_id) {
-    const { data, error } = await admin
-      .from("stripe_product_mappings")
-      .select(
-        "internal_product_key, product_display_name, entitlement_type, protocol_id, role_granted, access_duration_days, grant_child_protocols"
-      )
-      .eq("stripe_price_id", purchase.stripe_price_id)
-      .eq("active", true)
-      .maybeSingle();
+async function findMapping(purchase: PurchaseRow) {
+  const sql = getSql();
 
-    if (error) throw error;
-    if (data) return data as MappingRow;
+  if (purchase.stripe_price_id) {
+    const rows = await sql`
+      select internal_product_key, product_display_name, entitlement_type, protocol_id, role_granted,
+             access_duration_days, grant_child_protocols
+      from public.stripe_product_mappings
+      where stripe_price_id = ${purchase.stripe_price_id}
+        and active = true
+      limit 1
+    `;
+
+    if (rows[0]) return rows[0] as MappingRow;
   }
 
-  if (!purchase.stripe_product_id) return null;
+  if (purchase.stripe_product_id) {
+    const rows = await sql`
+      select internal_product_key, product_display_name, entitlement_type, protocol_id, role_granted,
+             access_duration_days, grant_child_protocols
+      from public.stripe_product_mappings
+      where stripe_product_id = ${purchase.stripe_product_id}
+        and active = true
+      limit 1
+    `;
 
-  const { data, error } = await admin
-    .from("stripe_product_mappings")
-    .select(
-      "internal_product_key, product_display_name, entitlement_type, protocol_id, role_granted, access_duration_days, grant_child_protocols"
-    )
-    .eq("stripe_product_id", purchase.stripe_product_id)
-    .eq("active", true)
-    .maybeSingle();
+    if (rows[0]) return rows[0] as MappingRow;
+  }
 
-  if (error) throw error;
-  return data as MappingRow | null;
+  if (!purchase.woocommerce_product_id) return null;
+
+  if (purchase.woocommerce_variation_id) {
+    const rows = await sql`
+      select internal_product_key, product_display_name, entitlement_type, protocol_id, role_granted,
+             access_duration_days, grant_child_protocols
+      from public.woocommerce_product_mappings
+      where woocommerce_product_id = ${purchase.woocommerce_product_id}
+        and woocommerce_variation_id = ${purchase.woocommerce_variation_id}
+        and active = true
+      limit 1
+    `;
+
+    if (rows[0]) return rows[0] as MappingRow;
+  }
+
+  const rows = await sql`
+    select internal_product_key, product_display_name, entitlement_type, protocol_id, role_granted,
+           access_duration_days, grant_child_protocols
+    from public.woocommerce_product_mappings
+    where woocommerce_product_id = ${purchase.woocommerce_product_id}
+      and woocommerce_variation_id is null
+      and active = true
+    limit 1
+  `;
+
+  return (rows[0] as MappingRow | undefined) ?? null;
 }
 
-async function ensureRole(admin: DatabaseClient, userId: string, role: string | null) {
+async function ensureRole(userId: string, role: string | null) {
   if (!role) return;
+  const sql = getSql();
 
-  const { error } = await admin.from("user_role_assignments").upsert(
-    {
-      user_id: userId,
-      role,
-      granted_reason: "stripe_purchase"
-    },
-    {
-      onConflict: "user_id,role"
-    }
-  );
-
-  if (error) throw error;
+  await sql`
+    insert into public.user_role_assignments (user_id, role, granted_reason)
+    values (${userId}, ${role}, 'purchase')
+    on conflict (user_id, role) do nothing
+  `;
 }
 
-async function hasExistingEntitlement(admin: DatabaseClient, userId: string, mapping: MappingRow) {
-  return hasExistingEntitlementFor(admin, userId, mapping.entitlement_type, mapping.protocol_id);
-}
-
-async function hasExistingEntitlementFor(
-  admin: DatabaseClient,
-  userId: string,
-  entitlementType: string,
-  protocolId: string | null
-) {
-  await expireClosedEntitlementsFor(admin, userId, entitlementType, protocolId);
-
-  let query = admin
-    .from("protocol_entitlements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("entitlement_type", entitlementType)
-    .in("status", ["active", "pending"])
-    .limit(1);
-
-  query = protocolId ? query.eq("protocol_id", protocolId) : query.is("protocol_id", null);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return Boolean(data?.length);
-}
-
-async function expireClosedEntitlementsFor(
-  admin: DatabaseClient,
-  userId: string,
-  entitlementType: string,
-  protocolId: string | null
-) {
+async function expireClosedEntitlementsFor(userId: string, entitlementType: string, protocolId: string | null) {
+  const sql = getSql();
   const now = new Date();
-  let expiredWindowQuery = admin
-    .from("protocol_entitlements")
-    .update({
-      status: "expired",
-      updated_at: now.toISOString()
-    })
-    .eq("user_id", userId)
-    .eq("entitlement_type", entitlementType)
-    .in("status", ["active", "pending"])
-    .lte("expires_at", now.toISOString());
 
-  expiredWindowQuery = protocolId
-    ? expiredWindowQuery.eq("protocol_id", protocolId)
-    : expiredWindowQuery.is("protocol_id", null);
+  if (protocolId) {
+    await sql`
+      update public.protocol_entitlements
+      set status = 'expired', updated_at = now()
+      where user_id = ${userId}
+        and entitlement_type = ${entitlementType}
+        and protocol_id = ${protocolId}
+        and status in ('active', 'pending')
+        and expires_at <= ${now.toISOString()}
+    `;
+  } else {
+    await sql`
+      update public.protocol_entitlements
+      set status = 'expired', updated_at = now()
+      where user_id = ${userId}
+        and entitlement_type = ${entitlementType}
+        and protocol_id is null
+        and status in ('active', 'pending')
+        and expires_at <= ${now.toISOString()}
+    `;
+    return;
+  }
 
-  const { error: expiredWindowError } = await expiredWindowQuery;
-  if (expiredWindowError) throw expiredWindowError;
+  const progressRows = await sql`
+    select completed_at
+    from public.protocol_progress
+    where user_id = ${userId}
+      and protocol_id = ${protocolId}
+    limit 1
+  `;
 
-  if (!protocolId) return;
-
-  const { data: progress, error: progressError } = await admin
-    .from("protocol_progress")
-    .select("completed_at")
-    .eq("user_id", userId)
-    .eq("protocol_id", protocolId)
-    .maybeSingle();
-
-  if (progressError) throw progressError;
-  if (!progress?.completed_at) return;
+  const completedAt = (progressRows[0] as { completed_at?: string | null } | undefined)?.completed_at;
+  if (!completedAt) return;
 
   const closeoutCutoff = subtractDays(now, 7);
+  if (new Date(completedAt).getTime() > new Date(closeoutCutoff).getTime()) return;
 
-  if (new Date(progress.completed_at as string).getTime() > new Date(closeoutCutoff).getTime()) return;
-
-  const { error: completionExpiredError } = await admin
-    .from("protocol_entitlements")
-    .update({
-      status: "expired",
-      updated_at: now.toISOString()
-    })
-    .eq("user_id", userId)
-    .eq("entitlement_type", entitlementType)
-    .eq("protocol_id", protocolId)
-    .in("status", ["active", "pending"]);
-
-  if (completionExpiredError) throw completionExpiredError;
+  await sql`
+    update public.protocol_entitlements
+    set status = 'expired', updated_at = now()
+    where user_id = ${userId}
+      and entitlement_type = ${entitlementType}
+      and protocol_id = ${protocolId}
+      and status in ('active', 'pending')
+  `;
 }
 
-async function ensureEntitlement(
-  admin: DatabaseClient,
-  userId: string,
-  purchaseId: string,
-  mapping: MappingRow
-) {
-  const exists = await hasExistingEntitlement(admin, userId, mapping);
+async function hasExistingEntitlementFor(userId: string, entitlementType: string, protocolId: string | null) {
+  const sql = getSql();
+  await expireClosedEntitlementsFor(userId, entitlementType, protocolId);
+
+  const rows = protocolId
+    ? await sql`
+        select id
+        from public.protocol_entitlements
+        where user_id = ${userId}
+          and entitlement_type = ${entitlementType}
+          and protocol_id = ${protocolId}
+          and status in ('active', 'pending')
+        limit 1
+      `
+    : await sql`
+        select id
+        from public.protocol_entitlements
+        where user_id = ${userId}
+          and entitlement_type = ${entitlementType}
+          and protocol_id is null
+          and status in ('active', 'pending')
+        limit 1
+      `;
+
+  return Boolean(rows.length);
+}
+
+async function ensureEntitlement(userId: string, purchaseId: string, source: string, mapping: MappingRow) {
+  const exists = await hasExistingEntitlementFor(userId, mapping.entitlement_type, mapping.protocol_id);
   if (exists) return;
 
+  const sql = getSql();
   const expiresAt = mapping.access_duration_days ? addDays(new Date(), mapping.access_duration_days) : null;
 
-  const { error } = await admin.from("protocol_entitlements").insert({
-    user_id: userId,
-    entitlement_type: mapping.entitlement_type,
-    protocol_id: mapping.protocol_id,
-    purchase_id: purchaseId,
-    source: "stripe_payment_link",
-    status: "active",
-    expires_at: expiresAt
-  });
-
-  if (error && error.code !== "23505") throw error;
+  await sql`
+    insert into public.protocol_entitlements (
+      user_id,
+      entitlement_type,
+      protocol_id,
+      purchase_id,
+      source,
+      status,
+      expires_at
+    )
+    values (
+      ${userId},
+      ${mapping.entitlement_type},
+      ${mapping.protocol_id},
+      ${purchaseId},
+      ${source},
+      'active',
+      ${expiresAt}
+    )
+    on conflict do nothing
+  `;
 }
 
 async function ensureProtocolEntitlement(
-  admin: DatabaseClient,
   userId: string,
   purchaseId: string,
+  source: string,
   protocolId: string,
   expiresAt: string | null
 ) {
-  const exists = await hasExistingEntitlementFor(admin, userId, "protocol", protocolId);
+  const exists = await hasExistingEntitlementFor(userId, "protocol", protocolId);
   if (exists) return;
 
-  const { error } = await admin.from("protocol_entitlements").insert({
-    user_id: userId,
-    entitlement_type: "protocol",
-    protocol_id: protocolId,
-    purchase_id: purchaseId,
-    source: "stripe_payment_link",
-    status: "active",
-    expires_at: expiresAt
-  });
+  const sql = getSql();
 
-  if (error && error.code !== "23505") throw error;
+  await sql`
+    insert into public.protocol_entitlements (
+      user_id,
+      entitlement_type,
+      protocol_id,
+      purchase_id,
+      source,
+      status,
+      expires_at
+    )
+    values (
+      ${userId},
+      'protocol',
+      ${protocolId},
+      ${purchaseId},
+      ${source},
+      'active',
+      ${expiresAt}
+    )
+    on conflict do nothing
+  `;
 }
 
-async function ensureBundleChildEntitlements(
-  admin: DatabaseClient,
-  userId: string,
-  purchaseId: string,
-  mapping: MappingRow
-) {
+async function ensureBundleChildEntitlements(userId: string, purchaseId: string, source: string, mapping: MappingRow) {
   if (!mapping.grant_child_protocols || !mapping.protocol_id) return;
 
-  const { data, error } = await admin
-    .from("bundle_protocols")
-    .select("child_protocol_id")
-    .eq("bundle_protocol_id", mapping.protocol_id);
-
-  if (error) throw error;
-
+  const sql = getSql();
+  const childRows = await sql`
+    select child_protocol_id
+    from public.bundle_protocols
+    where bundle_protocol_id = ${mapping.protocol_id}
+  `;
   const expiresAt = mapping.access_duration_days ? addDays(new Date(), mapping.access_duration_days) : null;
 
-  for (const child of (data ?? []) as BundleChildRow[]) {
-    await ensureProtocolEntitlement(admin, userId, purchaseId, child.child_protocol_id, expiresAt);
+  for (const child of childRows as Array<{ child_protocol_id: string }>) {
+    await ensureProtocolEntitlement(userId, purchaseId, source, child.child_protocol_id, expiresAt);
   }
 }
 
-async function markPurchaseClaimed(admin: DatabaseClient, purchaseId: string, userId: string) {
-  const { error } = await admin
-    .from("purchases")
-    .update({
-      user_id: userId,
-      claimed_at: new Date().toISOString(),
-      email_verified_before_claim: true
-    })
-    .eq("id", purchaseId)
-    .is("user_id", null)
-    .is("claimed_at", null);
+async function markPurchaseClaimed(purchaseId: string, userId: string) {
+  const sql = getSql();
 
-  if (error) throw error;
+  await sql`
+    update public.purchases
+    set user_id = ${userId},
+        claimed_at = now(),
+        email_verified_before_claim = true
+    where id = ${purchaseId}
+      and user_id is null
+      and claimed_at is null
+  `;
 }
 
-export async function claimPurchasesForUser(admin: DatabaseClient, user: User): Promise<ClaimResult> {
+export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResult> {
   const email = normalizeEmail(user.email);
+  const sql = getSql();
 
   if (!email) {
     return {
@@ -269,41 +293,14 @@ export async function claimPurchasesForUser(admin: DatabaseClient, user: User): 
     };
   }
 
-  if (!user.email_confirmed_at) {
-    return {
-      claimedCount: 0,
-      claimed: [],
-      skipped: ["Email must be confirmed before purchases can be claimed."]
-    };
-  }
-
-  const { error: profileError } = await admin.from("profiles").upsert(
-    {
-      id: user.id,
-      email,
-      full_name:
-        typeof user.user_metadata?.full_name === "string"
-          ? user.user_metadata.full_name
-          : typeof user.user_metadata?.name === "string"
-            ? user.user_metadata.name
-            : null,
-      last_login_at: new Date().toISOString()
-    },
-    {
-      onConflict: "email_normalized"
-    }
-  );
-
-  if (profileError) throw profileError;
-
-  const { data: purchases, error: purchaseError } = await admin
-    .from("purchases")
-    .select("id, email, stripe_product_id, stripe_price_id")
-    .eq("email_normalized", email)
-    .is("user_id", null)
-    .is("claimed_at", null);
-
-  if (purchaseError) throw purchaseError;
+  const purchases = (await sql`
+    select id, email, source, stripe_product_id, stripe_price_id, woocommerce_product_id,
+           woocommerce_variation_id
+    from public.purchases
+    where email_normalized = ${email}
+      and user_id is null
+      and claimed_at is null
+  `) as PurchaseRow[];
 
   const result: ClaimResult = {
     claimedCount: 0,
@@ -311,18 +308,18 @@ export async function claimPurchasesForUser(admin: DatabaseClient, user: User): 
     skipped: []
   };
 
-  for (const purchase of (purchases ?? []) as PurchaseRow[]) {
-    const mapping = await findMapping(admin, purchase);
+  for (const purchase of purchases) {
+    const mapping = await findMapping(purchase);
 
     if (!mapping) {
       result.skipped.push(`No active mapping found for purchase ${purchase.id}.`);
       continue;
     }
 
-    await ensureRole(admin, user.id, mapping.role_granted);
-    await ensureEntitlement(admin, user.id, purchase.id, mapping);
-    await ensureBundleChildEntitlements(admin, user.id, purchase.id, mapping);
-    await markPurchaseClaimed(admin, purchase.id, user.id);
+    await ensureRole(user.id, mapping.role_granted);
+    await ensureEntitlement(user.id, purchase.id, purchase.source, mapping);
+    await ensureBundleChildEntitlements(user.id, purchase.id, purchase.source, mapping);
+    await markPurchaseClaimed(purchase.id, user.id);
 
     result.claimedCount += 1;
     result.claimed.push(mapping.product_display_name ?? mapping.internal_product_key);

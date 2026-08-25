@@ -1,10 +1,7 @@
 import { createReadStream, existsSync } from "fs";
 import { basename, join, resolve } from "path";
-import {
-  userHasPractitionerLayerAccess,
-  userRoles
-} from "./_shared/practitioner-access";
-import { getSupabaseAdmin } from "./_shared/supabase-admin";
+import { requirePortalUser } from "./_shared/clerk-auth";
+import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
@@ -47,21 +44,6 @@ const RESOURCE_ACCESS: Record<string, AccessRule> = {
   "enterprise-ip-mastermind-advisor-guide.pdf": { practitionerOnly: true }
 };
 
-function jsonResponse(statusCode: number, body: unknown) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(body)
-  };
-}
-
-function getAuthorizationHeader(headers: Record<string, string | undefined>) {
-  return headers.Authorization ?? headers.authorization ?? "";
-}
-
 function sanitizeFileName(value: string | undefined) {
   if (!value) return "";
   const fileName = basename(value);
@@ -79,17 +61,18 @@ function addDays(date: Date, days: number) {
   return result;
 }
 
-async function completedProtocolMap(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data, error } = await admin
-    .from("protocol_progress")
-    .select("protocol_id, completed_at")
-    .eq("user_id", userId);
+async function completedProtocolMap(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select protocol_id, completed_at
+    from public.protocol_progress
+    where user_id = ${userId}
+  `;
 
-  if (error) throw error;
-
-  return new Map(
-    (data ?? []).map((row) => [row.protocol_id as string, (row.completed_at as string | null) ?? null])
-  );
+  return new Map((rows as Array<{ protocol_id: string; completed_at: string | null }>).map((row) => [
+    row.protocol_id,
+    row.completed_at
+  ]));
 }
 
 function completionCloseoutIsActive(protocolId: string | null, completedByProtocol: Map<string, string | null>) {
@@ -116,32 +99,34 @@ async function streamToBuffer(stream: NodeJS.ReadableStream) {
   return Buffer.concat(chunks);
 }
 
-async function userHasProtocolAccess(
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  userId: string,
-  protocolIds: string[]
-) {
+async function userRoles(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select role
+    from public.user_role_assignments
+    where user_id = ${userId}
+  `;
+
+  return (rows as Array<{ role: string }>).map((row) => row.role);
+}
+
+async function userHasProtocolAccess(userId: string, protocolIds: string[]) {
   if (!protocolIds.length) return false;
+  const sql = getSql();
 
-  const { data, error } = await admin
-    .from("protocol_entitlements")
-    .select("entitlement_type, protocol_id, expires_at")
-    .eq("user_id", userId)
-    .eq("status", "active");
+  const rows = await sql`
+    select entitlement_type, protocol_id, expires_at
+    from public.protocol_entitlements
+    where user_id = ${userId}
+      and status = 'active'
+  `;
 
-  if (error) throw error;
-
-  const completedByProtocol = await completedProtocolMap(admin, userId);
-  const activeRows = (data ?? []).filter((row) =>
-    entitlementCurrentlyAvailable(
-      row as { protocol_id: string | null; expires_at: string | null },
-      completedByProtocol
-    )
+  const completedByProtocol = await completedProtocolMap(userId);
+  const activeRows = (rows as Array<{ entitlement_type: string; protocol_id: string | null; expires_at: string | null }>).filter(
+    (row) => entitlementCurrentlyAvailable(row, completedByProtocol)
   );
 
-  if (activeRows.some((row) => row.protocol_id && protocolIds.includes(row.protocol_id as string))) {
-    return true;
-  }
+  if (activeRows.some((row) => row.protocol_id && protocolIds.includes(row.protocol_id))) return true;
 
   const bundleProtocolIds = activeRows
     .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
@@ -149,34 +134,48 @@ async function userHasProtocolAccess(
 
   if (!bundleProtocolIds.length) return false;
 
-  const { data: childRows, error: childError } = await admin
-    .from("bundle_protocols")
-    .select("child_protocol_id")
-    .in("bundle_protocol_id", bundleProtocolIds)
-    .in("child_protocol_id", protocolIds)
-    .limit(1);
+  const childRows = await sql.query(
+    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[]) and child_protocol_id = any($2::text[]) limit 1",
+    [bundleProtocolIds, protocolIds]
+  );
 
-  if (childError) throw childError;
-  return Boolean(childRows?.length);
+  return Boolean(childRows.length);
 }
 
-async function userHasActivePortalEntitlement(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data, error } = await admin
-    .from("protocol_entitlements")
-    .select("id, protocol_id, expires_at")
-    .eq("user_id", userId)
-    .eq("status", "active");
+async function userHasActivePortalEntitlement(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select id, protocol_id, expires_at
+    from public.protocol_entitlements
+    where user_id = ${userId}
+      and status = 'active'
+  `;
 
-  if (error) throw error;
+  const completedByProtocol = await completedProtocolMap(userId);
 
-  const completedByProtocol = await completedProtocolMap(admin, userId);
-
-  return (data ?? []).some((row) =>
-    entitlementCurrentlyAvailable(
-      row as { protocol_id: string | null; expires_at: string | null },
-      completedByProtocol
-    )
+  return (rows as Array<{ protocol_id: string | null; expires_at: string | null }>).some((row) =>
+    entitlementCurrentlyAvailable(row, completedByProtocol)
   );
+}
+
+async function userHasPractitionerLayerAccess(userId: string, roles: string[]) {
+  if (roles.includes("admin")) return true;
+  if (!roles.includes("practitioner")) return false;
+  const sql = getSql();
+
+  const rows = await sql`
+    select pe.id
+    from public.protocol_entitlements pe
+    join public.practitioner_profiles pp on pp.user_id = pe.user_id
+    where pe.user_id = ${userId}
+      and pe.entitlement_type = 'practitioner_layer'
+      and pe.status = 'active'
+      and (pe.expires_at is null or pe.expires_at > now())
+      and pp.access_status = 'active'
+    limit 1
+  `;
+
+  return Boolean(rows.length);
 }
 
 export async function handler(event: FunctionEvent) {
@@ -191,35 +190,19 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(404, { error: "Resource not found." });
   }
 
-  const authorization = getAuthorizationHeader(event.headers);
-  const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-
-  if (!token) {
-    return jsonResponse(401, { error: "Login required." });
-  }
-
   try {
-    const admin = getSupabaseAdmin();
-    const { data, error } = await admin.auth.getUser(token);
-
-    if (error || !data.user) {
-      return jsonResponse(401, { error: "Login required." });
-    }
-
-    const roles = await userRoles(admin, data.user.id);
+    const user = await requirePortalUser(event.headers);
+    const roles = await userRoles(user.id);
     const isAdmin = roles.includes("admin");
-    const hasActivePortalEntitlement =
-      isAdmin || (data.user.email_confirmed_at ? await userHasActivePortalEntitlement(admin, data.user.id) : false);
+    const hasActivePortalEntitlement = isAdmin || (await userHasActivePortalEntitlement(user.id));
     const hasPractitionerLayerAccess = rule.practitionerOnly
-      ? await userHasPractitionerLayerAccess(admin, data.user.id, roles)
+      ? await userHasPractitionerLayerAccess(user.id, roles)
       : false;
-    const hasProtocolAccess = rule.protocolIds
-      ? await userHasProtocolAccess(admin, data.user.id, rule.protocolIds)
-      : false;
+    const hasProtocolAccess = rule.protocolIds ? await userHasProtocolAccess(user.id, rule.protocolIds) : false;
 
     const allowed =
       isAdmin ||
-      Boolean(rule.authenticated && data.user.email_confirmed_at && hasActivePortalEntitlement) ||
+      Boolean(rule.authenticated && hasActivePortalEntitlement) ||
       Boolean(rule.protocolIds && hasProtocolAccess) ||
       Boolean(rule.practitionerOnly && hasPractitionerLayerAccess);
 
@@ -247,6 +230,6 @@ export async function handler(event: FunctionEvent) {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Resource access failed.";
-    return jsonResponse(500, { error: message });
+    return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }

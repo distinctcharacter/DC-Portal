@@ -1,4 +1,5 @@
-import { getSupabaseAdmin } from "./_shared/supabase-admin";
+import { requirePortalUser } from "./_shared/clerk-auth";
+import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
@@ -13,21 +14,6 @@ type EntitlementRow = {
 };
 
 const COMPLETION_CLOSEOUT_DAYS = 7;
-
-function jsonResponse(statusCode: number, body: unknown) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(body)
-  };
-}
-
-function getAuthorizationHeader(headers: Record<string, string | undefined>) {
-  return headers.Authorization ?? headers.authorization ?? "";
-}
 
 function parseBody(body: string | null | undefined) {
   if (!body) return {};
@@ -54,34 +40,31 @@ function entitlementIsActive(row: EntitlementRow) {
   return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
 }
 
-async function userIsAdmin(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data, error } = await admin
-    .from("user_role_assignments")
-    .select("role")
-    .eq("user_id", userId);
+async function userIsAdmin(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select role
+    from public.user_role_assignments
+    where user_id = ${userId}
+      and role = 'admin'
+    limit 1
+  `;
 
-  if (error) throw error;
-  return (data ?? []).some((row) => row.role === "admin");
+  return Boolean(rows.length);
 }
 
-async function userHasProtocolAccess(
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  userId: string,
-  protocolId: string
-) {
-  const { data, error } = await admin
-    .from("protocol_entitlements")
-    .select("entitlement_type, protocol_id, expires_at")
-    .eq("user_id", userId)
-    .eq("status", "active");
+async function userHasProtocolAccess(userId: string, protocolId: string) {
+  const sql = getSql();
+  const entitlements = (await sql`
+    select entitlement_type, protocol_id, expires_at
+    from public.protocol_entitlements
+    where user_id = ${userId}
+      and status = 'active'
+  `) as EntitlementRow[];
 
-  if (error) throw error;
+  const activeRows = entitlements.filter(entitlementIsActive);
 
-  const activeRows = ((data ?? []) as EntitlementRow[]).filter(entitlementIsActive);
-
-  if (activeRows.some((row) => row.protocol_id === protocolId)) {
-    return true;
-  }
+  if (activeRows.some((row) => row.protocol_id === protocolId)) return true;
 
   const bundleProtocolIds = activeRows
     .filter((row) => row.entitlement_type === "bundle" && row.protocol_id)
@@ -89,86 +72,55 @@ async function userHasProtocolAccess(
 
   if (!bundleProtocolIds.length) return false;
 
-  const { data: childRows, error: childError } = await admin
-    .from("bundle_protocols")
-    .select("child_protocol_id")
-    .in("bundle_protocol_id", bundleProtocolIds)
-    .eq("child_protocol_id", protocolId)
-    .limit(1);
+  const childRows = await sql.query(
+    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[]) and child_protocol_id = $2 limit 1",
+    [bundleProtocolIds, protocolId]
+  );
 
-  if (childError) throw childError;
-  return Boolean(childRows?.length);
+  return Boolean(childRows.length);
 }
 
-async function expireCompletedProtocolEntitlements(
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  userId: string,
-  protocolId: string,
-  closeoutEndsAt: string
-) {
-  const { data: childRows, error: childError } = await admin
-    .from("bundle_protocols")
-    .select("child_protocol_id")
-    .eq("bundle_protocol_id", protocolId);
-
-  if (childError) throw childError;
+async function expireCompletedProtocolEntitlements(userId: string, protocolId: string, closeoutEndsAt: string) {
+  const sql = getSql();
+  const childRows = await sql`
+    select child_protocol_id
+    from public.bundle_protocols
+    where bundle_protocol_id = ${protocolId}
+  `;
 
   const protocolIds = [
     protocolId,
-    ...((childRows ?? []).map((row) => row.child_protocol_id as string).filter(Boolean))
+    ...((childRows as Array<{ child_protocol_id: string }>).map((row) => row.child_protocol_id).filter(Boolean))
   ];
 
-  const { data: entitlementRows, error: readError } = await admin
-    .from("protocol_entitlements")
-    .select("id, expires_at")
-    .eq("user_id", userId)
-    .in("protocol_id", protocolIds)
-    .eq("status", "active");
+  const entitlementRows = (await sql.query(
+    "select id, expires_at from public.protocol_entitlements where user_id = $1 and protocol_id = any($2::text[]) and status = 'active'",
+    [userId, protocolIds]
+  )) as Array<{ id: string; expires_at: string | null }>;
 
-  if (readError) throw readError;
-
-  for (const row of entitlementRows ?? []) {
-    const existingExpiresAt = row.expires_at as string | null;
+  for (const row of entitlementRows) {
     const nextExpiresAt =
-      existingExpiresAt && new Date(existingExpiresAt).getTime() < new Date(closeoutEndsAt).getTime()
-        ? existingExpiresAt
+      row.expires_at && new Date(row.expires_at).getTime() < new Date(closeoutEndsAt).getTime()
+        ? row.expires_at
         : closeoutEndsAt;
 
-    const { error } = await admin
-      .from("protocol_entitlements")
-      .update({
-        expires_at: nextExpiresAt,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", row.id as string);
-
-    if (error) throw error;
+    await sql`
+      update public.protocol_entitlements
+      set expires_at = ${nextExpiresAt},
+          updated_at = now()
+      where id = ${row.id}
+    `;
   }
 
-  const { error } = await admin
-    .from("protocol_entitlements")
-    .update({
-      expires_at: closeoutEndsAt,
-      updated_at: new Date().toISOString()
-    })
-    .eq("user_id", userId)
-    .in("protocol_id", protocolIds)
-    .eq("status", "pending")
-    .is("expires_at", null);
-
-  if (error) throw error;
+  await sql.query(
+    "update public.protocol_entitlements set expires_at = $1, updated_at = now() where user_id = $2 and protocol_id = any($3::text[]) and status = 'pending' and expires_at is null",
+    [closeoutEndsAt, userId, protocolIds]
+  );
 }
 
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." });
-  }
-
-  const authorization = getAuthorizationHeader(event.headers);
-  const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-
-  if (!token) {
-    return jsonResponse(401, { error: "Login required." });
   }
 
   const protocolId = cleanProtocolId(parseBody(event.body).protocolId);
@@ -178,53 +130,58 @@ export async function handler(event: FunctionEvent) {
   }
 
   try {
-    const admin = getSupabaseAdmin();
-    const { data, error } = await admin.auth.getUser(token);
-
-    if (error || !data.user || !data.user.email_confirmed_at) {
-      return jsonResponse(401, { error: "Login required." });
-    }
-
-    const isAdmin = await userIsAdmin(admin, data.user.id);
-    const hasAccess = isAdmin || (await userHasProtocolAccess(admin, data.user.id, protocolId));
+    const user = await requirePortalUser(event.headers);
+    const isAdmin = await userIsAdmin(user.id);
+    const hasAccess = isAdmin || (await userHasProtocolAccess(user.id, protocolId));
 
     if (!hasAccess) {
       return jsonResponse(403, { error: "This protocol is not active for this account." });
     }
 
-    const { data: existingProgress, error: existingError } = await admin
-      .from("protocol_progress")
-      .select("completed_at")
-      .eq("user_id", data.user.id)
-      .eq("protocol_id", protocolId)
-      .maybeSingle();
+    const sql = getSql();
+    const existingProgress = await sql`
+      select completed_at
+      from public.protocol_progress
+      where user_id = ${user.id}
+        and protocol_id = ${protocolId}
+      limit 1
+    `;
 
-    if (existingError) throw existingError;
-
-    const completedAt = existingProgress?.completed_at
-      ? new Date(existingProgress.completed_at as string)
+    const completedAt = (existingProgress[0] as { completed_at?: string | null } | undefined)?.completed_at
+      ? new Date((existingProgress[0] as { completed_at: string }).completed_at)
       : new Date();
     const closeoutEndsAt = addDays(completedAt, COMPLETION_CLOSEOUT_DAYS).toISOString();
 
-    const { error: progressError } = await admin.from("protocol_progress").upsert(
-      {
-        user_id: data.user.id,
-        protocol_id: protocolId,
-        completion_percent: 100,
-        current_phase_key: "complete",
-        last_activity_at: new Date().toISOString(),
-        completed_at: completedAt.toISOString(),
-        updated_at: new Date().toISOString()
-      },
-      {
-        onConflict: "user_id,protocol_id"
-      }
-    );
-
-    if (progressError) throw progressError;
+    await sql`
+      insert into public.protocol_progress (
+        user_id,
+        protocol_id,
+        completion_percent,
+        current_phase_key,
+        last_activity_at,
+        completed_at,
+        updated_at
+      )
+      values (
+        ${user.id},
+        ${protocolId},
+        100,
+        'complete',
+        now(),
+        ${completedAt.toISOString()},
+        now()
+      )
+      on conflict (user_id, protocol_id)
+      do update set
+        completion_percent = 100,
+        current_phase_key = 'complete',
+        last_activity_at = now(),
+        completed_at = coalesce(public.protocol_progress.completed_at, excluded.completed_at),
+        updated_at = now()
+    `;
 
     if (!isAdmin) {
-      await expireCompletedProtocolEntitlements(admin, data.user.id, protocolId, closeoutEndsAt);
+      await expireCompletedProtocolEntitlements(user.id, protocolId, closeoutEndsAt);
     }
 
     return jsonResponse(200, {
@@ -234,6 +191,6 @@ export async function handler(event: FunctionEvent) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Protocol completion could not be saved.";
-    return jsonResponse(500, { error: message });
+    return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }

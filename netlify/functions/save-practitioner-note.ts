@@ -1,29 +1,11 @@
-import {
-  userHasPractitionerLayerAccess,
-  userRoles
-} from "./_shared/practitioner-access";
-import { getSupabaseAdmin } from "./_shared/supabase-admin";
+import { requirePortalUser } from "./_shared/clerk-auth";
+import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
   headers: Record<string, string | undefined>;
   body?: string | null;
 };
-
-function jsonResponse(statusCode: number, body: unknown) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(body)
-  };
-}
-
-function getAuthorizationHeader(headers: Record<string, string | undefined>) {
-  return headers.Authorization ?? headers.authorization ?? "";
-}
 
 function cleanText(value: unknown, maxLength: number) {
   if (typeof value !== "string") return "";
@@ -40,16 +22,40 @@ function parseBody(body: string | null | undefined) {
   }
 }
 
+async function userRoles(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select role
+    from public.user_role_assignments
+    where user_id = ${userId}
+  `;
+
+  return (rows as Array<{ role: string }>).map((row) => row.role);
+}
+
+async function userHasPractitionerLayerAccess(userId: string, roles: string[]) {
+  if (roles.includes("admin")) return true;
+  if (!roles.includes("practitioner")) return false;
+  const sql = getSql();
+
+  const rows = await sql`
+    select pe.id
+    from public.protocol_entitlements pe
+    join public.practitioner_profiles pp on pp.user_id = pe.user_id
+    where pe.user_id = ${userId}
+      and pe.entitlement_type = 'practitioner_layer'
+      and pe.status = 'active'
+      and (pe.expires_at is null or pe.expires_at > now())
+      and pp.access_status = 'active'
+    limit 1
+  `;
+
+  return Boolean(rows.length);
+}
+
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." });
-  }
-
-  const authorization = getAuthorizationHeader(event.headers);
-  const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-
-  if (!token) {
-    return jsonResponse(401, { error: "Login required." });
   }
 
   const payload = parseBody(event.body);
@@ -67,44 +73,48 @@ export async function handler(event: FunctionEvent) {
   }
 
   try {
-    const admin = getSupabaseAdmin();
-    const { data, error } = await admin.auth.getUser(token);
-
-    if (error || !data.user) {
-      return jsonResponse(401, { error: "Login required." });
-    }
-
-    const roles = await userRoles(admin, data.user.id);
-    const hasAccess = await userHasPractitionerLayerAccess(admin, data.user.id, roles);
+    const user = await requirePortalUser(event.headers);
+    const roles = await userRoles(user.id);
+    const hasAccess = await userHasPractitionerLayerAccess(user.id, roles);
 
     if (!hasAccess) {
       return jsonResponse(403, { error: "Practitioner access is required." });
     }
 
-    const { data: relationship, error: relationshipError } = await admin
-      .from("practitioner_client_relationships")
-      .select("client_id, protocol_id")
-      .eq("id", relationshipId)
-      .eq("practitioner_id", data.user.id)
-      .eq("status", "active")
-      .maybeSingle();
+    const sql = getSql();
+    const relationshipRows = await sql`
+      select client_id, protocol_id
+      from public.practitioner_client_relationships
+      where id = ${relationshipId}
+        and practitioner_id = ${user.id}
+        and status = 'active'
+      limit 1
+    `;
 
-    if (relationshipError) throw relationshipError;
+    const relationship = relationshipRows[0] as { client_id: string; protocol_id: string | null } | undefined;
 
     if (!relationship) {
       return jsonResponse(403, { error: "This client is not assigned to this practitioner account." });
     }
 
-    const { error: insertError } = await admin.from("practitioner_notes").insert({
-      practitioner_id: data.user.id,
-      client_id: relationship.client_id,
-      protocol_id: relationship.protocol_id,
-      note_type: noteType,
-      visibility,
-      body
-    });
-
-    if (insertError) throw insertError;
+    await sql`
+      insert into public.practitioner_notes (
+        practitioner_id,
+        client_id,
+        protocol_id,
+        note_type,
+        visibility,
+        body
+      )
+      values (
+        ${user.id},
+        ${relationship.client_id},
+        ${relationship.protocol_id},
+        ${noteType},
+        ${visibility},
+        ${body}
+      )
+    `;
 
     return jsonResponse(200, {
       ok: true,
@@ -112,6 +122,6 @@ export async function handler(event: FunctionEvent) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Practitioner note could not be saved.";
-    return jsonResponse(500, { error: message });
+    return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }

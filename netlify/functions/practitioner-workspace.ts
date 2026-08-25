@@ -1,27 +1,40 @@
-import {
-  userHasPractitionerLayerAccess,
-  userRoles
-} from "./_shared/practitioner-access";
-import { getSupabaseAdmin } from "./_shared/supabase-admin";
+import { requirePortalUser } from "./_shared/clerk-auth";
+import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
   headers: Record<string, string | undefined>;
 };
 
-function jsonResponse(statusCode: number, body: unknown) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(body)
-  };
+async function userRoles(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select role
+    from public.user_role_assignments
+    where user_id = ${userId}
+  `;
+
+  return (rows as Array<{ role: string }>).map((row) => row.role);
 }
 
-function getAuthorizationHeader(headers: Record<string, string | undefined>) {
-  return headers.Authorization ?? headers.authorization ?? "";
+async function userHasPractitionerLayerAccess(userId: string, roles: string[]) {
+  if (roles.includes("admin")) return true;
+  if (!roles.includes("practitioner")) return false;
+  const sql = getSql();
+
+  const rows = await sql`
+    select pe.id
+    from public.protocol_entitlements pe
+    join public.practitioner_profiles pp on pp.user_id = pe.user_id
+    where pe.user_id = ${userId}
+      and pe.entitlement_type = 'practitioner_layer'
+      and pe.status = 'active'
+      and (pe.expires_at is null or pe.expires_at > now())
+      and pp.access_status = 'active'
+    limit 1
+  `;
+
+  return Boolean(rows.length);
 }
 
 export async function handler(event: FunctionEvent) {
@@ -29,78 +42,66 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(405, { error: "Method not allowed." });
   }
 
-  const authorization = getAuthorizationHeader(event.headers);
-  const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-
-  if (!token) {
-    return jsonResponse(401, { error: "Login required." });
-  }
-
   try {
-    const admin = getSupabaseAdmin();
-    const { data, error } = await admin.auth.getUser(token);
-
-    if (error || !data.user) {
-      return jsonResponse(401, { error: "Login required." });
-    }
-
-    const roles = await userRoles(admin, data.user.id);
-    const hasAccess = await userHasPractitionerLayerAccess(admin, data.user.id, roles);
+    const user = await requirePortalUser(event.headers);
+    const roles = await userRoles(user.id);
+    const hasAccess = await userHasPractitionerLayerAccess(user.id, roles);
 
     if (!hasAccess) {
       return jsonResponse(403, { error: "Practitioner access is required." });
     }
 
-    const { data: relationships, error: relationshipError } = await admin
-      .from("practitioner_client_relationships")
-      .select("id, client_id, protocol_id, status, client_consented_at, practitioner_assigned_at")
-      .eq("practitioner_id", data.user.id)
-      .eq("status", "active")
-      .order("practitioner_assigned_at", { ascending: false });
+    const sql = getSql();
+    const relationships = await sql`
+      select id, client_id, protocol_id, status, client_consented_at, practitioner_assigned_at
+      from public.practitioner_client_relationships
+      where practitioner_id = ${user.id}
+        and status = 'active'
+      order by practitioner_assigned_at desc
+    `;
 
-    if (relationshipError) throw relationshipError;
-
-    const clientIds = Array.from(new Set((relationships ?? []).map((row) => row.client_id as string)));
+    const clientIds = Array.from(
+      new Set((relationships as Array<{ client_id: string }>).map((row) => row.client_id))
+    );
     const protocolIds = Array.from(
-      new Set((relationships ?? []).map((row) => row.protocol_id as string | null).filter(Boolean))
+      new Set(
+        (relationships as Array<{ protocol_id: string | null }>)
+          .map((row) => row.protocol_id)
+          .filter(Boolean)
+      )
     ) as string[];
 
-    const { data: clients, error: clientError } = clientIds.length
-      ? await admin
-          .from("profiles")
-          .select("id, email, full_name")
-          .in("id", clientIds)
-      : { data: [], error: null };
+    const clients = clientIds.length
+      ? await sql.query("select id, email, full_name from public.profiles where id = any($1::text[])", [
+          clientIds
+        ])
+      : [];
+    const protocols = protocolIds.length
+      ? await sql.query("select id, title from public.protocols where id = any($1::text[])", [protocolIds])
+      : [];
+    const notes = await sql`
+      select id, client_id, protocol_id, note_type, visibility, body, created_at
+      from public.practitioner_notes
+      where practitioner_id = ${user.id}
+      order by created_at desc
+      limit 12
+    `;
 
-    if (clientError) throw clientError;
-
-    const { data: protocols, error: protocolError } = protocolIds.length
-      ? await admin
-          .from("protocols")
-          .select("id, title")
-          .in("id", protocolIds)
-      : { data: [], error: null };
-
-    if (protocolError) throw protocolError;
-
-    const { data: notes, error: notesError } = await admin
-      .from("practitioner_notes")
-      .select("id, client_id, protocol_id, note_type, visibility, body, created_at")
-      .eq("practitioner_id", data.user.id)
-      .order("created_at", { ascending: false })
-      .limit(12);
-
-    if (notesError) throw notesError;
-
-    const clientMap = new Map((clients ?? []).map((client) => [client.id as string, client]));
-    const protocolMap = new Map((protocols ?? []).map((protocol) => [protocol.id as string, protocol]));
+    const clientMap = new Map((clients as Array<{ id: string }>).map((client) => [client.id, client]));
+    const protocolMap = new Map((protocols as Array<{ id: string }>).map((protocol) => [protocol.id, protocol]));
 
     return jsonResponse(200, {
       ok: true,
-      clients: (relationships ?? []).map((relationship) => {
-        const client = clientMap.get(relationship.client_id as string);
+      clients: (relationships as Array<{
+        id: string;
+        client_id: string;
+        protocol_id: string | null;
+        client_consented_at: string | null;
+        practitioner_assigned_at: string;
+      }>).map((relationship) => {
+        const client = clientMap.get(relationship.client_id) as { email?: string; full_name?: string | null } | undefined;
         const protocol = relationship.protocol_id
-          ? protocolMap.get(relationship.protocol_id as string)
+          ? (protocolMap.get(relationship.protocol_id) as { title?: string } | undefined)
           : null;
 
         return {
@@ -113,9 +114,17 @@ export async function handler(event: FunctionEvent) {
           assignedAt: relationship.practitioner_assigned_at
         };
       }),
-      notes: (notes ?? []).map((note) => {
-        const client = clientMap.get(note.client_id as string);
-        const protocol = note.protocol_id ? protocolMap.get(note.protocol_id as string) : null;
+      notes: (notes as Array<{
+        id: string;
+        client_id: string;
+        protocol_id: string | null;
+        note_type: string;
+        visibility: string;
+        body: string;
+        created_at: string;
+      }>).map((note) => {
+        const client = clientMap.get(note.client_id) as { email?: string; full_name?: string | null } | undefined;
+        const protocol = note.protocol_id ? (protocolMap.get(note.protocol_id) as { title?: string } | undefined) : null;
 
         return {
           id: note.id,
@@ -132,6 +141,6 @@ export async function handler(event: FunctionEvent) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Practitioner workspace could not be loaded.";
-    return jsonResponse(500, { error: message });
+    return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }

@@ -1,5 +1,3 @@
-import { supabase } from "@/lib/supabase/client";
-
 export type PurchaseClaimResult =
   | {
       ok: true;
@@ -12,20 +10,8 @@ export type PurchaseClaimResult =
       error: string;
     };
 
-export async function claimPendingPurchases(): Promise<PurchaseClaimResult> {
-  const {
-    data: { session },
-    error: sessionError
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    return {
-      ok: false,
-      error: sessionError.message
-    };
-  }
-
-  if (!session?.access_token) {
+export async function claimPendingPurchases(token: string | null): Promise<PurchaseClaimResult> {
+  if (!token) {
     return {
       ok: false,
       error: "Login required before purchase access can be claimed."
@@ -35,7 +21,7 @@ export async function claimPendingPurchases(): Promise<PurchaseClaimResult> {
   const response = await fetch("/.netlify/functions/claim-purchases", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session.access_token}`
+      Authorization: `Bearer ${token}`
     }
   });
 
@@ -50,4 +36,3 @@ export async function claimPendingPurchases(): Promise<PurchaseClaimResult> {
 
   return payload;
 }
-

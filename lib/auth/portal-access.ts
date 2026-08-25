@@ -1,8 +1,8 @@
 "use client";
 
+import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import type { Role } from "@/data/mock";
-import { supabase } from "@/lib/supabase/client";
 
 type PortalAccessState = {
   loading: boolean;
@@ -28,9 +28,9 @@ type PortalAccessPayload = {
   activeEntitlementCount?: number;
 };
 
-export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessState {
-  const [state, setState] = useState<PortalAccessState>({
-    loading: true,
+function emptyAccess(fallbackRole: Role): PortalAccessState {
+  return {
+    loading: false,
     role: fallbackRole,
     roles: [fallbackRole],
     protocolIds: [],
@@ -39,53 +39,42 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
     hasActivePortalAccess: false,
     activeAccessUntil: null,
     activeEntitlementCount: 0
+  };
+}
+
+export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessState {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const [state, setState] = useState<PortalAccessState>({
+    ...emptyAccess(fallbackRole),
+    loading: true
   });
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadAccess() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded) return;
 
-      if (!session?.access_token) {
-        if (!cancelled) {
-          setState({
-            loading: false,
-            role: fallbackRole,
-            roles: [fallbackRole],
-            protocolIds: [],
-            canAccessPractitionerLayer: false,
-            canAccessLicenseLayer: false,
-            hasActivePortalAccess: false,
-            activeAccessUntil: null,
-            activeEntitlementCount: 0
-          });
-        }
+      if (!isSignedIn) {
+        if (!cancelled) setState(emptyAccess(fallbackRole));
+        return;
+      }
+
+      const token = await getToken();
+
+      if (!token) {
+        if (!cancelled) setState(emptyAccess(fallbackRole));
         return;
       }
 
       const response = await fetch("/.netlify/functions/portal-access", {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
       if (!response.ok) {
-        if (!cancelled) {
-          setState({
-            loading: false,
-            role: fallbackRole,
-            roles: [fallbackRole],
-            protocolIds: [],
-            canAccessPractitionerLayer: false,
-            canAccessLicenseLayer: false,
-            hasActivePortalAccess: false,
-            activeAccessUntil: null,
-            activeEntitlementCount: 0
-          });
-        }
+        if (!cancelled) setState(emptyAccess(fallbackRole));
         return;
       }
 
@@ -108,15 +97,10 @@ export function usePortalAccess(fallbackRole: Role = "client"): PortalAccessStat
 
     loadAccess();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      loadAccess();
-    });
-
     return () => {
       cancelled = true;
-      listener.subscription.unsubscribe();
     };
-  }, [fallbackRole]);
+  }, [fallbackRole, getToken, isLoaded, isSignedIn]);
 
   return state;
 }

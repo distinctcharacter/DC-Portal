@@ -1,4 +1,5 @@
-import { getSupabaseAdmin } from "./_shared/supabase-admin";
+import { requirePortalUser } from "./_shared/clerk-auth";
+import { getSql, jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
@@ -8,21 +9,6 @@ type FunctionEvent = {
 
 const SOMATIC_BASELINE_PROTOCOL_ID = "DC-P01-SBP";
 const COMPLETION_CLOSEOUT_DAYS = 7;
-
-function jsonResponse(statusCode: number, body: unknown) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(body)
-  };
-}
-
-function getAuthorizationHeader(headers: Record<string, string | undefined>) {
-  return headers.Authorization ?? headers.authorization ?? "";
-}
 
 function cleanText(value: unknown, maxLength: number) {
   if (typeof value !== "string") return "";
@@ -39,157 +25,115 @@ function parseBody(body: string | null | undefined) {
   }
 }
 
-function entitlementIsActive(row: { expires_at: string | null }) {
-  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
-}
-
 function addDays(date: Date, days: number) {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
 }
 
-async function protocolCompletionCloseoutIsActive(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data, error } = await admin
-    .from("protocol_progress")
-    .select("completed_at")
-    .eq("user_id", userId)
-    .eq("protocol_id", SOMATIC_BASELINE_PROTOCOL_ID)
-    .maybeSingle();
+async function protocolCompletionCloseoutIsActive(userId: string) {
+  const sql = getSql();
+  const rows = await sql`
+    select completed_at
+    from public.protocol_progress
+    where user_id = ${userId}
+      and protocol_id = ${SOMATIC_BASELINE_PROTOCOL_ID}
+    limit 1
+  `;
 
-  if (error) throw error;
-  if (!data?.completed_at) return true;
+  const completedAt = (rows[0] as { completed_at?: string | null } | undefined)?.completed_at;
+  if (!completedAt) return true;
 
-  return addDays(new Date(data.completed_at as string), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
+  return addDays(new Date(completedAt), COMPLETION_CLOSEOUT_DAYS).getTime() > Date.now();
 }
 
-async function ensureProfile(
-  admin: ReturnType<typeof getSupabaseAdmin>,
-  user: {
-    id: string;
-    email?: string | null;
-    user_metadata?: Record<string, unknown>;
-  }
-) {
-  const email = user.email?.trim().toLowerCase();
-
-  if (!email) {
-    throw new Error("A verified email is required before saving protocol logs.");
-  }
-
-  const fullName =
-    cleanText(user.user_metadata?.full_name, 160) ||
-    cleanText(user.user_metadata?.name, 160) ||
-    null;
-
-  const { error } = await admin.from("profiles").upsert(
-    {
-      id: user.id,
-      email,
-      full_name: fullName,
-      last_login_at: new Date().toISOString()
-    },
-    {
-      onConflict: "id"
-    }
-  );
-
-  if (error) throw error;
+function entitlementIsActive(row: { expires_at: string | null }) {
+  return !row.expires_at || new Date(row.expires_at).getTime() > Date.now();
 }
 
-async function userHasSomaticAccess(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const { data: roleRows, error: roleError } = await admin
-    .from("user_role_assignments")
-    .select("role")
-    .eq("user_id", userId);
+async function userHasSomaticAccess(userId: string) {
+  const sql = getSql();
 
-  if (roleError) throw roleError;
-  if ((roleRows ?? []).some((row) => row.role === "admin")) return true;
+  const roleRows = await sql`
+    select role
+    from public.user_role_assignments
+    where user_id = ${userId}
+  `;
 
-  const completionCloseoutActive = await protocolCompletionCloseoutIsActive(admin, userId);
+  if ((roleRows as Array<{ role: string }>).some((row) => row.role === "admin")) return true;
+  if (!(await protocolCompletionCloseoutIsActive(userId))) return false;
 
-  if (!completionCloseoutActive) return false;
+  const directRows = await sql`
+    select id, expires_at
+    from public.protocol_entitlements
+    where user_id = ${userId}
+      and status = 'active'
+      and protocol_id = ${SOMATIC_BASELINE_PROTOCOL_ID}
+  `;
 
-  const { data: directRows, error: directError } = await admin
-    .from("protocol_entitlements")
-    .select("id, expires_at")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .eq("protocol_id", SOMATIC_BASELINE_PROTOCOL_ID);
+  if ((directRows as Array<{ expires_at: string | null }>).some(entitlementIsActive)) return true;
 
-  if (directError) throw directError;
-  if ((directRows ?? []).some((row) => entitlementIsActive(row as { expires_at: string | null }))) {
-    return true;
-  }
+  const bundleRows = (await sql`
+    select protocol_id, expires_at
+    from public.protocol_entitlements
+    where user_id = ${userId}
+      and status = 'active'
+      and entitlement_type = 'bundle'
+      and protocol_id is not null
+  `) as Array<{ protocol_id: string; expires_at: string | null }>;
 
-  const { data: bundleRows, error: bundleError } = await admin
-    .from("protocol_entitlements")
-    .select("protocol_id, expires_at")
-    .eq("user_id", userId)
-    .eq("status", "active")
-    .eq("entitlement_type", "bundle")
-    .not("protocol_id", "is", null);
-
-  if (bundleError) throw bundleError;
-
-  const bundleProtocolIds = (bundleRows ?? [])
-    .filter((row) => entitlementIsActive(row as { expires_at: string | null }))
-    .map((row) => row.protocol_id as string | null)
-    .filter(Boolean) as string[];
-
+  const bundleProtocolIds = bundleRows.filter(entitlementIsActive).map((row) => row.protocol_id);
   if (!bundleProtocolIds.length) return false;
 
-  const { data: childRows, error: childError } = await admin
-    .from("bundle_protocols")
-    .select("child_protocol_id")
-    .in("bundle_protocol_id", bundleProtocolIds)
-    .eq("child_protocol_id", SOMATIC_BASELINE_PROTOCOL_ID)
-    .limit(1);
-
-  if (childError) throw childError;
-  return Boolean(childRows?.length);
-}
-
-async function updateProtocolProgress(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
-  const now = new Date().toISOString();
-  const { data: existingRows, error: readError } = await admin
-    .from("protocol_progress")
-    .select("completion_percent")
-    .eq("user_id", userId)
-    .eq("protocol_id", SOMATIC_BASELINE_PROTOCOL_ID)
-    .limit(1);
-
-  if (readError) throw readError;
-
-  const currentPercent = Number(existingRows?.[0]?.completion_percent ?? 0);
-
-  const { error } = await admin.from("protocol_progress").upsert(
-    {
-      user_id: userId,
-      protocol_id: SOMATIC_BASELINE_PROTOCOL_ID,
-      completion_percent: Math.max(currentPercent, 20),
-      current_phase_key: "biological-architecture",
-      last_activity_at: now,
-      updated_at: now
-    },
-    {
-      onConflict: "user_id,protocol_id"
-    }
+  const childRows = await sql.query(
+    "select child_protocol_id from public.bundle_protocols where bundle_protocol_id = any($1::text[]) and child_protocol_id = $2 limit 1",
+    [bundleProtocolIds, SOMATIC_BASELINE_PROTOCOL_ID]
   );
 
-  if (error) throw error;
+  return Boolean(childRows.length);
+}
+
+async function updateProtocolProgress(userId: string) {
+  const sql = getSql();
+  const existingRows = await sql`
+    select completion_percent
+    from public.protocol_progress
+    where user_id = ${userId}
+      and protocol_id = ${SOMATIC_BASELINE_PROTOCOL_ID}
+    limit 1
+  `;
+
+  const currentPercent = Number((existingRows[0] as { completion_percent?: number } | undefined)?.completion_percent ?? 0);
+
+  await sql`
+    insert into public.protocol_progress (
+      user_id,
+      protocol_id,
+      completion_percent,
+      current_phase_key,
+      last_activity_at,
+      updated_at
+    )
+    values (
+      ${userId},
+      ${SOMATIC_BASELINE_PROTOCOL_ID},
+      ${Math.max(currentPercent, 20)},
+      'biological-architecture',
+      now(),
+      now()
+    )
+    on conflict (user_id, protocol_id)
+    do update set
+      completion_percent = greatest(public.protocol_progress.completion_percent, excluded.completion_percent),
+      current_phase_key = excluded.current_phase_key,
+      last_activity_at = now(),
+      updated_at = now()
+  `;
 }
 
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." });
-  }
-
-  const authorization = getAuthorizationHeader(event.headers);
-  const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-
-  if (!token) {
-    return jsonResponse(401, { error: "Login required." });
   }
 
   const payload = parseBody(event.body);
@@ -203,16 +147,8 @@ export async function handler(event: FunctionEvent) {
   }
 
   try {
-    const admin = getSupabaseAdmin();
-    const { data, error } = await admin.auth.getUser(token);
-
-    if (error || !data.user || !data.user.email_confirmed_at) {
-      return jsonResponse(401, { error: "Login required." });
-    }
-
-    await ensureProfile(admin, data.user);
-
-    const hasAccess = await userHasSomaticAccess(admin, data.user.id);
+    const user = await requirePortalUser(event.headers);
+    const hasAccess = await userHasSomaticAccess(user.id);
 
     if (!hasAccess) {
       return jsonResponse(403, {
@@ -220,18 +156,28 @@ export async function handler(event: FunctionEvent) {
       });
     }
 
-    const { error: insertError } = await admin.from("practice_logs").insert({
-      user_id: data.user.id,
-      protocol_id: SOMATIC_BASELINE_PROTOCOL_ID,
-      practice_key: practiceKey,
-      state_before: stateBefore,
-      state_after: stateAfter,
-      context_note: contextNote
-    });
+    const sql = getSql();
 
-    if (insertError) throw insertError;
+    await sql`
+      insert into public.practice_logs (
+        user_id,
+        protocol_id,
+        practice_key,
+        state_before,
+        state_after,
+        context_note
+      )
+      values (
+        ${user.id},
+        ${SOMATIC_BASELINE_PROTOCOL_ID},
+        ${practiceKey},
+        ${stateBefore},
+        ${stateAfter},
+        ${contextNote}
+      )
+    `;
 
-    await updateProtocolProgress(admin, data.user.id);
+    await updateProtocolProgress(user.id);
 
     return jsonResponse(200, {
       ok: true,
@@ -239,6 +185,6 @@ export async function handler(event: FunctionEvent) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Practice log could not be saved.";
-    return jsonResponse(500, { error: message });
+    return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }

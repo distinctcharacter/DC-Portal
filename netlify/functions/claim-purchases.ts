@@ -1,24 +1,11 @@
-import { getSupabaseAdmin } from "./_shared/supabase-admin";
+import { requirePortalUser } from "./_shared/clerk-auth";
 import { claimPurchasesForUser } from "./_shared/purchase-claim";
+import { jsonResponse } from "./_shared/neon";
 
 type FunctionEvent = {
   httpMethod: string;
   headers: Record<string, string | undefined>;
 };
-
-function jsonResponse(statusCode: number, body: unknown) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  };
-}
-
-function getAuthorizationHeader(headers: Record<string, string | undefined>) {
-  return headers.Authorization ?? headers.authorization ?? "";
-}
 
 export async function handler(event: FunctionEvent) {
   if (event.httpMethod !== "POST") {
@@ -26,21 +13,8 @@ export async function handler(event: FunctionEvent) {
   }
 
   try {
-    const authorization = getAuthorizationHeader(event.headers);
-    const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
-
-    if (!token) {
-      return jsonResponse(401, { error: "Missing authenticated portal session." });
-    }
-
-    const admin = getSupabaseAdmin();
-    const { data, error } = await admin.auth.getUser(token);
-
-    if (error || !data.user) {
-      return jsonResponse(401, { error: error?.message ?? "Invalid portal session." });
-    }
-
-    const result = await claimPurchasesForUser(admin, data.user);
+    const user = await requirePortalUser(event.headers);
+    const result = await claimPurchasesForUser(user);
 
     return jsonResponse(200, {
       ok: true,
@@ -49,10 +23,9 @@ export async function handler(event: FunctionEvent) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Purchase claim failed.";
 
-    return jsonResponse(500, {
+    return jsonResponse(message === "Login required." ? 401 : 500, {
       ok: false,
       error: message
     });
   }
 }
-
