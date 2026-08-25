@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { claimPendingPurchases, type PurchaseClaimResult } from "@/lib/auth/purchase-claim";
-import { supabase } from "@/lib/supabase/client";
 
 type ClaimState = "checking" | "login_required" | "claimed" | "none" | "error";
 
@@ -18,6 +18,7 @@ function statusCopy(state: ClaimState, result: PurchaseClaimResult | null) {
 }
 
 export function PurchaseClaimStatus() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [state, setState] = useState<ClaimState>("checking");
   const [result, setResult] = useState<PurchaseClaimResult | null>(null);
 
@@ -25,16 +26,14 @@ export function PurchaseClaimStatus() {
     let cancelled = false;
 
     async function runClaimCheck() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded) return;
 
-      if (!session) {
+      if (!isSignedIn) {
         if (!cancelled) setState("login_required");
         return;
       }
 
-      const claimResult = await claimPendingPurchases();
+      const claimResult = await claimPendingPurchases(await getToken());
 
       if (cancelled) return;
 
@@ -53,7 +52,7 @@ export function PurchaseClaimStatus() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getToken, isLoaded, isSignedIn]);
 
   return (
     <section className={`claim-status claim-status-${state}`} aria-live="polite">

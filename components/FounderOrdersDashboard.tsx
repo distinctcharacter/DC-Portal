@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@clerk/nextjs";
 
 type FounderOrder = {
   id: string;
@@ -15,6 +15,9 @@ type FounderOrder = {
   emailVerifiedBeforeClaim: boolean;
   stripeProductId: string | null;
   stripePriceId: string | null;
+  woocommerceOrderId: string | null;
+  woocommerceProductId: string | null;
+  woocommerceVariationId: string | null;
   profile: {
     id: string;
     email: string;
@@ -90,7 +93,14 @@ function entitlementSummary(order: FounderOrder) {
     .join("; ");
 }
 
+function sourceLabel(source: string) {
+  if (source === "woocommerce_checkout") return "WooCommerce";
+  if (source.startsWith("stripe")) return "Stripe";
+  return cleanLabel(source);
+}
+
 export function FounderOrdersDashboard() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [payload, setPayload] = useState<FounderOrdersPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -99,19 +109,19 @@ export function FounderOrdersDashboard() {
     setLoading(true);
     setError("");
 
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
+    if (!isLoaded) return;
 
-    if (!session?.access_token) {
+    if (!isSignedIn) {
       setError("Sign in with an admin account to view founder orders.");
       setLoading(false);
       return;
     }
 
+    const token = await getToken();
+
     const response = await fetch("/.netlify/functions/founder-orders", {
       headers: {
-        Authorization: `Bearer ${session.access_token}`
+        Authorization: `Bearer ${token}`
       }
     });
 
@@ -129,7 +139,7 @@ export function FounderOrdersDashboard() {
 
   useEffect(() => {
     loadOrders();
-  }, []);
+  }, [isLoaded, isSignedIn]);
 
   const failedWebhookCount = useMemo(
     () => payload?.recentWebhookEvents.filter((event) => event.processing_status === "failed").length ?? 0,
@@ -163,7 +173,7 @@ export function FounderOrdersDashboard() {
         <article className="stat-card gold">
           <span>Total Orders</span>
           <strong>{payload.summary.totalOrders}</strong>
-          <p>Recorded in Supabase from Stripe purchase events.</p>
+          <p>Recorded in Supabase from website checkout events.</p>
         </article>
         <article className="stat-card green">
           <span>Claimed Access</span>
@@ -210,7 +220,7 @@ export function FounderOrdersDashboard() {
               </span>
               <span>
                 <strong>{cleanLabel(order.productName)}</strong>
-                <small>{entitlementSummary(order)}</small>
+                <small>{sourceLabel(order.source)} · {entitlementSummary(order)}</small>
               </span>
               <span>{formatMoney(order.amountTotal, order.currency)}</span>
               <span>{formatDate(order.purchasedAt)}</span>

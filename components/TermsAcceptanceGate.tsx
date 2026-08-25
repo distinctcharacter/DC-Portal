@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import { useUser } from "@clerk/nextjs";
 import { usePortalAccess } from "@/lib/auth/portal-access";
-import { supabase } from "@/lib/supabase/client";
 
 const TERMS_VERSION = "dc-portal-terms-v2-2025";
 
@@ -55,6 +55,7 @@ const termsSections = [
 type GateStatus = "checking" | "guest" | "required" | "accepted";
 
 export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
+  const { isLoaded, isSignedIn, user } = useUser();
   const portalAccess = usePortalAccess();
   const [status, setStatus] = useState<GateStatus>("checking");
   const [checked, setChecked] = useState(false);
@@ -62,26 +63,17 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let active = true;
-
     function resolveStatus(metadata: Record<string, unknown> | undefined) {
       return metadata?.dc_terms_version === TERMS_VERSION ? "accepted" : "required";
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (!active) return;
-      setStatus(data.user ? resolveStatus(data.user.user_metadata) : "guest");
-    });
+    if (!isLoaded) {
+      setStatus("checking");
+      return;
+    }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setStatus(session?.user ? resolveStatus(session.user.user_metadata) : "guest");
-    });
-
-    return () => {
-      active = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+    setStatus(isSignedIn ? resolveStatus(user?.unsafeMetadata) : "guest");
+  }, [isLoaded, isSignedIn, user?.unsafeMetadata]);
 
   async function acceptTerms() {
     if (!checked || saving) return;
@@ -89,14 +81,16 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
     setSaving(true);
     setError("");
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: {
-        dc_terms_version: TERMS_VERSION,
-        dc_terms_accepted_at: new Date().toISOString()
-      }
-    });
-
-    if (updateError) {
+    try {
+      await user?.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          dc_terms_version: TERMS_VERSION,
+          dc_terms_accepted_at: new Date().toISOString()
+        }
+      });
+      await user?.reload();
+    } catch {
       setError("The acknowledgment could not be saved. Please refresh and try again.");
       setSaving(false);
       return;

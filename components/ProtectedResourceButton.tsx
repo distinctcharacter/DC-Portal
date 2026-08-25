@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@clerk/nextjs";
 import { fileNameFromHref } from "@/lib/resource-access-rules";
 
 type ProtectedResourceButtonProps = {
@@ -17,6 +17,7 @@ export function ProtectedResourceButton({
   className = "button secondary",
   disabled = false
 }: ProtectedResourceButtonProps) {
+  const { getToken } = useAuth();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -35,11 +36,9 @@ export function ProtectedResourceButton({
     setPending(true);
 
     try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      const token = await getToken();
 
-      if (!session?.access_token) {
+      if (!token) {
         window.location.assign("/login");
         return;
       }
@@ -48,7 +47,7 @@ export function ProtectedResourceButton({
         `/.netlify/functions/protected-resource?file=${encodeURIComponent(fileName)}`,
         {
           headers: {
-            Authorization: `Bearer ${session.access_token}`
+            Authorization: `Bearer ${token}`
           }
         }
       );

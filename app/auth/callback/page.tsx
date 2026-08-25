@@ -1,63 +1,41 @@
 "use client";
 
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { claimPendingPurchases } from "@/lib/auth/purchase-claim";
-import { supabase } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [status, setStatus] = useState("Checking your portal session.");
 
   useEffect(() => {
     let cancelled = false;
 
     async function confirmSession() {
-      const timeout = window.setTimeout(() => {
-        if (!cancelled) {
-          setStatus("Session check is taking longer than expected. Refresh this page or request a new magic link.");
-        }
-      }, 8000);
+      if (!isLoaded) return;
 
-      try {
-        const code = new URLSearchParams(window.location.search).get("code");
-
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-          if (error) {
-            setStatus(error.message);
-            return;
-          }
-        }
-
-        const { data, error } = await supabase.auth.getSession();
-
-        if (error) {
-          setStatus(error.message);
-          return;
-        }
-
-        if (data.session?.user) {
-          const claimResult = await claimPendingPurchases();
-
-          if (claimResult.ok && claimResult.claimedCount > 0) {
-            setStatus(`Authentication confirmed. Access claimed: ${claimResult.claimed.join(", ")}.`);
-            return;
-          }
-
-          if (claimResult.ok) {
-            setStatus("Authentication confirmed. You can return to the dashboard.");
-            return;
-          }
-
-          setStatus("Authentication confirmed. Purchase access could not be refreshed. Please contact support.");
-          return;
-        }
-
-        setStatus("No active session was found. Try opening the newest magic link from your email.");
-      } finally {
-        window.clearTimeout(timeout);
+      if (!isSignedIn) {
+        setStatus("No active session was found. Sign in with the same email used at checkout.");
+        return;
       }
+
+      const token = await getToken();
+      const claimResult = await claimPendingPurchases(token);
+
+      if (cancelled) return;
+
+      if (claimResult.ok && claimResult.claimedCount > 0) {
+        setStatus(`Authentication confirmed. Access claimed: ${claimResult.claimed.join(", ")}.`);
+        return;
+      }
+
+      if (claimResult.ok) {
+        setStatus("Authentication confirmed. You can return to the dashboard.");
+        return;
+      }
+
+      setStatus("Authentication confirmed. Purchase access could not be refreshed. Please contact support.");
     }
 
     confirmSession();
@@ -65,7 +43,7 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getToken, isLoaded, isSignedIn]);
 
   return (
     <main className="auth-page">

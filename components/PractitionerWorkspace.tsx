@@ -14,7 +14,7 @@ import { usePortalAccess } from "@/lib/auth/portal-access";
 import { ResourceCard } from "@/components/ResourceCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { StatCard } from "@/components/StatCard";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@clerk/nextjs";
 
 type PractitionerClient = {
   relationshipId: string;
@@ -48,6 +48,7 @@ function formatVisibility(value: string) {
 }
 
 export function PractitionerWorkspace({ role }: { role: Role }) {
+  const { getToken } = useAuth();
   const access = usePortalAccess(role);
   const effectiveRole = access.role;
   const hasPractitionerAccess = !access.loading && access.canAccessPractitionerLayer;
@@ -64,18 +65,16 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
   const [noteMessage, setNoteMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   async function loadPractitionerWorkspace() {
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
+    const token = await getToken();
 
-    if (!session?.access_token) {
+    if (!token) {
       setWorkspaceLoaded(true);
       return;
     }
 
     const response = await fetch("/.netlify/functions/practitioner-workspace", {
       headers: {
-        Authorization: `Bearer ${session.access_token}`
+        Authorization: `Bearer ${token}`
       }
     });
 
@@ -108,11 +107,9 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
     setSavePending(true);
 
     try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      const token = await getToken();
 
-      if (!session?.access_token) {
+      if (!token) {
         setNoteMessage({ type: "error", text: "Log in to save practitioner notes." });
         return;
       }
@@ -120,7 +117,7 @@ export function PractitionerWorkspace({ role }: { role: Role }) {
       const response = await fetch("/.netlify/functions/save-practitioner-note", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import { AuthRecoveryRedirect } from "@/components/AuthRecoveryRedirect";
 import "./globals.css";
 
@@ -11,8 +12,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <AuthRecoveryRedirect />
-        {children}
+        <ClerkProvider>
+          <AuthRecoveryRedirect />
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );

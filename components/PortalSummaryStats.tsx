@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { StatCard } from "@/components/StatCard";
-import { supabase } from "@/lib/supabase/client";
 
 type ProtocolRow = {
   id: string;
@@ -40,6 +40,7 @@ function formatPhase(value: string | null | undefined) {
 }
 
 export function PortalSummaryStats() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [payload, setPayload] = useState<PortalCatalogPayload | null>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -47,18 +48,18 @@ export function PortalSummaryStats() {
     let mounted = true;
 
     async function loadSummary() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded) return;
 
-      if (!session?.access_token) {
+      if (!isSignedIn) {
         if (mounted) setLoaded(true);
         return;
       }
 
+      const token = await getToken();
+
       const response = await fetch("/.netlify/functions/portal-catalog", {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -76,7 +77,7 @@ export function PortalSummaryStats() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [getToken, isLoaded, isSignedIn]);
 
   const summary = useMemo(() => {
     const protocols = payload?.protocols ?? [];

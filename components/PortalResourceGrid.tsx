@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { ResourceCard } from "@/components/ResourceCard";
 import { resources as mockResources, type Resource } from "@/data/mock";
-import { supabase } from "@/lib/supabase/client";
 
 type ResourceAssetRow = {
   id: string;
@@ -42,23 +42,23 @@ function mapResourceRow(row: ResourceAssetRow, existing?: Resource): Resource {
 }
 
 export function PortalResourceGrid() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [rows, setRows] = useState<ResourceAssetRow[]>([]);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadResources() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded || !isSignedIn) return;
+      const token = await getToken();
 
-      if (!session) {
+      if (!token) {
         return;
       }
 
       const response = await fetch("/.netlify/functions/portal-catalog", {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -80,7 +80,7 @@ export function PortalResourceGrid() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [getToken, isLoaded, isSignedIn]);
 
   const displayResources = useMemo(() => {
     if (!rows.length) return mockResources;

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@clerk/nextjs";
 
 type MessageState = {
   type: "success" | "error";
@@ -25,6 +25,7 @@ const STATE_OPTIONS = [
 ];
 
 export function SomaticResetLog() {
+  const { getToken } = useAuth();
   const [contextNote, setContextNote] = useState("");
   const [practiceKey, setPracticeKey] = useState(PRACTICE_OPTIONS[0].value);
   const [stateBefore, setStateBefore] = useState(STATE_OPTIONS[1]);
@@ -38,11 +39,9 @@ export function SomaticResetLog() {
     setPending(true);
 
     try {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      const token = await getToken();
 
-      if (!session?.access_token) {
+      if (!token) {
         setMessage({
           type: "error",
           text: "Log in to save this practice entry to your portal record."
@@ -53,7 +52,7 @@ export function SomaticResetLog() {
       const response = await fetch("/.netlify/functions/save-practice-log", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({

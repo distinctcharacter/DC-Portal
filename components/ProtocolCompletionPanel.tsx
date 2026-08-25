@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@clerk/nextjs";
 
 type ProtocolCompletionPanelProps = {
   protocolId: string;
@@ -36,6 +36,7 @@ function formatDate(value: string | null) {
 }
 
 export function ProtocolCompletionPanel({ protocolId, protocolTitle }: ProtocolCompletionPanelProps) {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
@@ -47,15 +48,14 @@ export function ProtocolCompletionPanel({ protocolId, protocolTitle }: ProtocolC
     let mounted = true;
 
     async function loadCompletionStatus() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded || !isSignedIn) return;
+      const token = await getToken();
 
-      if (!session?.access_token) return;
+      if (!token) return;
 
       const response = await fetch("/.netlify/functions/portal-catalog", {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -77,7 +77,7 @@ export function ProtocolCompletionPanel({ protocolId, protocolTitle }: ProtocolC
     return () => {
       mounted = false;
     };
-  }, [protocolId]);
+  }, [getToken, isLoaded, isSignedIn, protocolId]);
 
   async function markComplete() {
     if (!confirmed || saving) return;
@@ -86,11 +86,9 @@ export function ProtocolCompletionPanel({ protocolId, protocolTitle }: ProtocolC
     setError("");
     setMessage("");
 
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
+    const token = await getToken();
 
-    if (!session?.access_token) {
+    if (!token) {
       setError("Please sign in again before marking the protocol complete.");
       setSaving(false);
       return;
@@ -100,7 +98,7 @@ export function ProtocolCompletionPanel({ protocolId, protocolTitle }: ProtocolC
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`
+        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({ protocolId })
     });

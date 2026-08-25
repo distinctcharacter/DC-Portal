@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { ProtocolCard } from "@/components/ProtocolCard";
 import { protocols as mockProtocols, type Protocol } from "@/data/mock";
-import { supabase } from "@/lib/supabase/client";
 
 type ProtocolRow = {
   id: string;
@@ -67,6 +67,7 @@ function mergeProtocolRow(
 }
 
 export function PortalProtocolGrid() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [rows, setRows] = useState<ProtocolRow[]>([]);
   const [accessibleProtocolIds, setAccessibleProtocolIds] = useState<Set<string>>(new Set());
   const [progressRows, setProgressRows] = useState<ProtocolProgressRow[]>([]);
@@ -75,17 +76,16 @@ export function PortalProtocolGrid() {
     let mounted = true;
 
     async function loadProtocols() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded || !isSignedIn) return;
+      const token = await getToken();
 
-      if (!session) {
+      if (!token) {
         return;
       }
 
       const response = await fetch("/.netlify/functions/portal-catalog", {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -105,7 +105,7 @@ export function PortalProtocolGrid() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [getToken, isLoaded, isSignedIn]);
 
   const displayProtocols = useMemo(() => {
     if (!rows.length) return mockProtocols;

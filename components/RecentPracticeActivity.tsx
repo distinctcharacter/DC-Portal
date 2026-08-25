@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { useAuth } from "@clerk/nextjs";
 
 type PracticeLogRow = {
   id: string;
@@ -34,6 +34,7 @@ function formatDate(value: string) {
 }
 
 export function RecentPracticeActivity() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
   const [logs, setLogs] = useState<PracticeLogRow[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -41,18 +42,18 @@ export function RecentPracticeActivity() {
     let mounted = true;
 
     async function loadActivity() {
-      const {
-        data: { session }
-      } = await supabase.auth.getSession();
+      if (!isLoaded) return;
 
-      if (!session?.access_token) {
+      if (!isSignedIn) {
         if (mounted) setLoaded(true);
         return;
       }
 
+      const token = await getToken();
+
       const response = await fetch("/.netlify/functions/portal-catalog", {
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
@@ -73,7 +74,7 @@ export function RecentPracticeActivity() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [getToken, isLoaded, isSignedIn]);
 
   return (
     <article className="activity-panel">
