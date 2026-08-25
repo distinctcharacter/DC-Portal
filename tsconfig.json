@@ -38,6 +38,8 @@
   "exclude": [
     "node_modules",
     "_shared",
+    "components/Supabase*.ts",
+    "components/Supabase*.tsx",
     "claim-purchases.ts",
     "founder-orders.ts",
     "mark-protocol-complete.ts",
