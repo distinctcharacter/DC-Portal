@@ -9,7 +9,7 @@ export default function FounderOrdersPage() {
         <SectionHeader
           eyebrow="Founder Dashboard"
           title="Orders and Access Records"
-          copy="A private administrative view for reviewing client purchases, account claim status, and payment automation health."
+          copy="A private founder view for reviewing client purchases, account claim status, and payment automation health."
         />
         <FounderOrdersDashboard />
       </section>
