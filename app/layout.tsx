@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AuthRecoveryRedirect } from "@/components/AuthRecoveryRedirect";
 import "./globals.css";
+import "./system-audit.css";
 
 export const metadata: Metadata = {
   title: "Distinct Character Protocol Portal",
