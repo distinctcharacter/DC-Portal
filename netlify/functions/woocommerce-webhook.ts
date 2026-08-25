@@ -281,6 +281,15 @@ async function recordPurchase(
 }
 
 export async function handler(event: FunctionEvent) {
+  if (event.httpMethod === "GET") {
+    return jsonResponse(200, {
+      ok: true,
+      stage: "woocommerce_webhook_ready",
+      hasWebhookSecret: Boolean(process.env.WOOCOMMERCE_WEBHOOK_SECRET),
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL)
+    });
+  }
+
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." });
   }
@@ -342,7 +351,7 @@ export async function handler(event: FunctionEvent) {
 
     if (!processed.length) {
       await updateWebhookStatus(eventId, "failed");
-      return jsonResponse(500, {
+      return jsonResponse(200, {
         ok: false,
         status: "unmapped_product",
         unmapped
