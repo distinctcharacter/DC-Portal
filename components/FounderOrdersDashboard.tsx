@@ -173,7 +173,7 @@ export function FounderOrdersDashboard() {
         <article className="stat-card gold">
           <span>Total Orders</span>
           <strong>{payload.summary.totalOrders}</strong>
-          <p>Recorded in Supabase from website checkout events.</p>
+          <p>Recorded in Neon from website checkout events.</p>
         </article>
         <article className="stat-card green">
           <span>Claimed Access</span>
@@ -239,7 +239,7 @@ export function FounderOrdersDashboard() {
         <div className="founder-panel-header">
           <div>
             <span className="eyebrow">Payment Automation</span>
-            <h2>Recent Stripe Webhook Events</h2>
+            <h2>Recent Payment Webhook Events</h2>
             <p>{failedWebhookCount ? `${failedWebhookCount} recent event needs review.` : "Recent events are clear."}</p>
           </div>
         </div>
