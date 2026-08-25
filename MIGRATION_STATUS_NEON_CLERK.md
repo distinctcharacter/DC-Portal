@@ -28,6 +28,9 @@ Updated: August 25, 2026
 - Purchase-linked access expiration is calculated from the purchase date, not the later account-claim date.
 - The Clerk middleware restricts accepted production origins to the portal domain.
 - A production Clerk account reconnects to the existing Neon profile by verified email, preserving purchases, roles, entitlements, progress, and founder records when Clerk user IDs change.
+- A direct Neon audit confirmed all eight WooCommerce mappings are active, all bundle children exist, and there are no duplicate mappings or orphaned purchase/access records.
+- Founder System Audit treats a failed WooCommerce delivery as resolved when a later delivery for the same order processes successfully.
+- The production Clerk Frontend API domain is pre-authorized by the portal content security policy.
 
 ## Remaining Validation
 
