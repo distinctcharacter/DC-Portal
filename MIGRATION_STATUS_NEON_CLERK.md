@@ -25,10 +25,14 @@ Updated: August 25, 2026
 - All protocol detail URLs return successful HTTP responses.
 - Founder Orders and System Audit pages are protected by founder/admin authorization.
 - Supabase runtime packages and active imports have been removed.
+- Purchase-linked access expiration is calculated from the purchase date, not the later account-claim date.
+- The Clerk middleware restricts accepted production origins to the portal domain.
 
 ## Remaining Validation
 
-These are workflow confirmations, not migration construction:
+The live portal is currently using Clerk development keys (`pk_test_` / `sk_test_`). Before public customer acquisition, activate the Clerk production instance for `portal.distinctcharacter.com`, replace both Clerk keys in Netlify with `pk_live_` / `sk_live_` values, and redeploy.
+
+After that key change, these are workflow confirmations rather than migration construction:
 
 1. Open one protected PDF while signed in and confirm it loads.
 2. Save one practice-log entry and confirm the saved message appears.

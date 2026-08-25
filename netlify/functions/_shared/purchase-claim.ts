@@ -11,6 +11,7 @@ type PurchaseRow = {
   stripe_price_id: string | null;
   woocommerce_product_id: string | null;
   woocommerce_variation_id: string | null;
+  purchased_at: string;
 };
 
 type MappingRow = {
@@ -208,12 +209,46 @@ async function hasExistingEntitlementFor(userId: string, entitlementType: string
   return Boolean(rows.length);
 }
 
-async function ensureEntitlement(userId: string, purchaseId: string, source: string, mapping: MappingRow) {
-  const exists = await hasExistingEntitlementFor(userId, mapping.entitlement_type, mapping.protocol_id);
-  if (exists) return;
-
+async function ensureEntitlement(
+  userId: string,
+  purchaseId: string,
+  source: string,
+  purchasedAtValue: string,
+  mapping: MappingRow
+) {
   const sql = getSql();
-  const expiresAt = mapping.access_duration_days ? addDays(new Date(), mapping.access_duration_days) : null;
+  const purchasedAt = new Date(purchasedAtValue);
+  const expiresAt = mapping.access_duration_days ? addDays(purchasedAt, mapping.access_duration_days) : null;
+  const exists = await hasExistingEntitlementFor(userId, mapping.entitlement_type, mapping.protocol_id);
+
+  if (exists) {
+    if (expiresAt) {
+      if (mapping.protocol_id) {
+        await sql`
+          update public.protocol_entitlements
+          set expires_at = least(coalesce(expires_at, ${expiresAt}), ${expiresAt}),
+              updated_at = now()
+          where user_id = ${userId}
+            and entitlement_type = ${mapping.entitlement_type}
+            and protocol_id = ${mapping.protocol_id}
+            and purchase_id = ${purchaseId}
+            and status in ('active', 'pending')
+        `;
+      } else {
+        await sql`
+          update public.protocol_entitlements
+          set expires_at = least(coalesce(expires_at, ${expiresAt}), ${expiresAt}),
+              updated_at = now()
+          where user_id = ${userId}
+            and entitlement_type = ${mapping.entitlement_type}
+            and protocol_id is null
+            and purchase_id = ${purchaseId}
+            and status in ('active', 'pending')
+        `;
+      }
+    }
+    return;
+  }
 
   await sql`
     insert into public.protocol_entitlements (
@@ -246,9 +281,23 @@ async function ensureProtocolEntitlement(
   expiresAt: string | null
 ) {
   const exists = await hasExistingEntitlementFor(userId, "protocol", protocolId);
-  if (exists) return;
-
   const sql = getSql();
+
+  if (exists) {
+    if (expiresAt) {
+      await sql`
+        update public.protocol_entitlements
+        set expires_at = least(coalesce(expires_at, ${expiresAt}), ${expiresAt}),
+            updated_at = now()
+        where user_id = ${userId}
+          and entitlement_type = 'protocol'
+          and protocol_id = ${protocolId}
+          and purchase_id = ${purchaseId}
+          and status in ('active', 'pending')
+      `;
+    }
+    return;
+  }
 
   await sql`
     insert into public.protocol_entitlements (
@@ -273,7 +322,13 @@ async function ensureProtocolEntitlement(
   `;
 }
 
-async function ensureBundleChildEntitlements(userId: string, purchaseId: string, source: string, mapping: MappingRow) {
+async function ensureBundleChildEntitlements(
+  userId: string,
+  purchaseId: string,
+  source: string,
+  purchasedAtValue: string,
+  mapping: MappingRow
+) {
   if (!mapping.grant_child_protocols || !mapping.protocol_id) return;
 
   const sql = getSql();
@@ -282,7 +337,8 @@ async function ensureBundleChildEntitlements(userId: string, purchaseId: string,
     from public.bundle_protocols
     where bundle_protocol_id = ${mapping.protocol_id}
   `;
-  const expiresAt = mapping.access_duration_days ? addDays(new Date(), mapping.access_duration_days) : null;
+  const purchasedAt = new Date(purchasedAtValue);
+  const expiresAt = mapping.access_duration_days ? addDays(purchasedAt, mapping.access_duration_days) : null;
 
   for (const child of childRows as Array<{ child_protocol_id: string }>) {
     await ensureProtocolEntitlement(userId, purchaseId, source, child.child_protocol_id, expiresAt);
@@ -317,7 +373,7 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
 
   const purchases = (await sql`
     select id, user_id, claimed_at, email, source, stripe_product_id, stripe_price_id,
-           woocommerce_product_id, woocommerce_variation_id
+           woocommerce_product_id, woocommerce_variation_id, purchased_at
     from public.purchases
     where email_normalized = ${email}
       and (
@@ -341,8 +397,14 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
     }
 
     await ensureRole(user.id, mapping.role_granted);
-    await ensureEntitlement(user.id, purchase.id, purchase.source, mapping);
-    await ensureBundleChildEntitlements(user.id, purchase.id, purchase.source, mapping);
+    await ensureEntitlement(user.id, purchase.id, purchase.source, purchase.purchased_at, mapping);
+    await ensureBundleChildEntitlements(
+      user.id,
+      purchase.id,
+      purchase.source,
+      purchase.purchased_at,
+      mapping
+    );
     if (!purchase.user_id || !purchase.claimed_at) {
       await markPurchaseClaimed(purchase.id, user.id);
       result.claimedCount += 1;
@@ -353,3 +415,4 @@ export async function claimPurchasesForUser(user: PortalUser): Promise<ClaimResu
 
   return result;
 }
+

@@ -1,6 +1,10 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 
-export default clerkMiddleware();
+export default clerkMiddleware({
+  authorizedParties: [
+    process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portal.distinctcharacter.com"
+  ]
+});
 
 export const config = {
   matcher: [
@@ -9,3 +13,4 @@ export const config = {
     "/__clerk/(.*)"
   ]
 };
+
