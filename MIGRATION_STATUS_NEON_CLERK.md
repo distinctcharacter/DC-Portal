@@ -45,6 +45,7 @@ Updated: August 25, 2026
 - The founder profile has an explicit Neon admin role so founder-facing practitioner and administrative backend checks agree with the interface.
 - The temporary access diagnostic and retired practitioner compatibility helper have been removed.
 - Production dependencies pass `npm audit` with zero known vulnerabilities, and the complete Next.js production build passes.
+- Security headers are emitted by Next.js itself so the Netlify Next.js runtime cannot omit them from rendered portal pages.
 
 ## Production Validation
 
