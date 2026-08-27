@@ -271,7 +271,7 @@ export const resources: Resource[] = [
     access: "Practitioner",
     description:
       "Practitioner-facing safety, pacing, and clinical-adjacent review notes.",
-    href: "/resources/somatic-baseline-protocol.pdf"
+    href: "/resources/somatic-baseline-practitioner-therapeutic-addendum.pdf"
   },
   {
     id: "DC-P07-EIP-RS01",
@@ -338,7 +338,7 @@ export const downloads: DownloadAsset[] = [
     type: "Printable Companion",
     audience: "Client",
     status: "Available",
-    href: "/resources/somatic-baseline-protocol.pdf"
+    href: "/resources/somatic-baseline-practitioner-therapeutic-addendum.pdf"
   },
   {
     id: "DC-P01-SBP-CM01",
@@ -776,3 +776,4 @@ export const therapeuticAddenda: TherapeuticAddendum[] = [
       "Use when daily enforcement reveals repeated nervous system strain, relational activation, or practice collapse."
   }
 ];
+
