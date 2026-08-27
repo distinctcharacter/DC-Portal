@@ -66,17 +66,45 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    function resolveStatus(metadata: Record<string, unknown> | undefined) {
-      return metadata?.dc_terms_version === TERMS_VERSION ? "accepted" : "required";
-    }
-
     if (!isLoaded) {
       setStatus("checking");
       return;
     }
 
-    setStatus(isSignedIn ? resolveStatus(user?.publicMetadata) : "guest");
-  }, [isLoaded, isSignedIn, user?.publicMetadata]);
+    if (!isSignedIn) {
+      setStatus("guest");
+      return;
+    }
+
+    if (user?.publicMetadata?.dc_terms_version === TERMS_VERSION) {
+      setStatus("accepted");
+      return;
+    }
+
+    let cancelled = false;
+    setStatus("checking");
+
+    async function loadAcceptance() {
+      try {
+        const token = await getToken();
+        const response = await fetch("/.netlify/functions/accept-terms", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        });
+        const payload = (await response.json()) as { accepted?: boolean };
+
+        if (!response.ok) throw new Error("Terms status could not be confirmed.");
+        if (!cancelled) setStatus(payload.accepted ? "accepted" : "required");
+      } catch {
+        if (!cancelled) setStatus("required");
+      }
+    }
+
+    void loadAcceptance();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, isLoaded, isSignedIn, user?.publicMetadata]);
 
   async function acceptTerms() {
     if (!checked || saving) return;
@@ -93,7 +121,6 @@ export function TermsAcceptanceGate({ children }: { children: ReactNode }) {
 
       if (!response.ok) throw new Error("Terms acknowledgment could not be saved.");
 
-      await user?.reload();
     } catch {
       setError("The acknowledgment could not be saved. Please refresh and try again.");
       setSaving(false);

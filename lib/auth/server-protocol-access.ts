@@ -23,24 +23,25 @@ export async function getServerProtocolAccess(
     return "denied";
   }
 
-  if (user.publicMetadata?.dc_terms_version !== TERMS_VERSION) {
-    return "terms_required";
-  }
-
   const emailNormalized = normalizeEmail(primaryEmail.emailAddress);
-
-  if (emailNormalized === FOUNDER_EMAIL) return "allowed";
-
   const sql = getSql();
   const profiles = await sql`
-    select id
+    select id, terms_version
     from public.profiles
     where clerk_user_id = ${userId}
        or email_normalized = ${emailNormalized}
     order by case when clerk_user_id = ${userId} then 0 else 1 end
     limit 1
   `;
-  const profileId = (profiles[0] as { id?: string } | undefined)?.id ?? userId;
+  const profile = profiles[0] as { id?: string; terms_version?: string | null } | undefined;
+  const profileId = profile?.id ?? userId;
+  const termsAccepted =
+    user.publicMetadata?.dc_terms_version === TERMS_VERSION ||
+    profile?.terms_version === TERMS_VERSION;
+
+  if (!termsAccepted) return "terms_required";
+
+  if (emailNormalized === FOUNDER_EMAIL) return "allowed";
   const roles = await sql`
     select role
     from public.user_role_assignments

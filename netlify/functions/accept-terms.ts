@@ -1,5 +1,5 @@
 import { requirePortalUser } from "./_shared/clerk-auth";
-import { jsonResponse } from "./_shared/neon";
+import { getSql, jsonResponse } from "./_shared/neon";
 
 const TERMS_VERSION = "dc-portal-terms-v2-2025";
 
@@ -9,45 +9,51 @@ type FunctionEvent = {
 };
 
 export async function handler(event: FunctionEvent) {
-  if (event.httpMethod !== "POST") {
+  if (event.httpMethod !== "GET" && event.httpMethod !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." });
   }
 
   try {
     const user = await requirePortalUser(event.headers);
-    const secretKey = process.env.CLERK_SECRET_KEY;
+    const sql = getSql();
 
-    if (!secretKey) throw new Error("Portal authentication is not configured.");
+    if (event.httpMethod === "GET") {
+      const rows = await sql`
+        select terms_version, terms_accepted_at
+        from public.profiles
+        where id = ${user.id}
+        limit 1
+      `;
+      const profile = rows[0] as
+        | { terms_version: string | null; terms_accepted_at: string | null }
+        | undefined;
 
-    const lookup = await fetch(
-      `https://api.clerk.com/v1/users/${encodeURIComponent(user.clerkUserId)}`,
-      { headers: { Authorization: `Bearer ${secretKey}` } }
-    );
+      return jsonResponse(200, {
+        ok: true,
+        accepted: profile?.terms_version === TERMS_VERSION,
+        termsVersion: profile?.terms_version ?? null,
+        acceptedAt: profile?.terms_accepted_at ?? null
+      });
+    }
 
-    if (!lookup.ok) throw new Error("Terms acknowledgment could not be saved.");
+    const acceptedAt = new Date().toISOString();
+    const rows = await sql`
+      update public.profiles
+      set terms_version = ${TERMS_VERSION},
+          terms_accepted_at = ${acceptedAt},
+          updated_at = now()
+      where id = ${user.id}
+      returning terms_version, terms_accepted_at
+    `;
 
-    const clerkUser = (await lookup.json()) as { public_metadata?: Record<string, unknown> };
-    const update = await fetch(
-      `https://api.clerk.com/v1/users/${encodeURIComponent(user.clerkUserId)}`,
-      {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          public_metadata: {
-            ...(clerkUser.public_metadata ?? {}),
-            dc_terms_version: TERMS_VERSION,
-            dc_terms_accepted_at: new Date().toISOString()
-          }
-        })
-      }
-    );
+    if (!rows.length) throw new Error("Terms acknowledgment could not be saved.");
 
-    if (!update.ok) throw new Error("Terms acknowledgment could not be saved.");
-
-    return jsonResponse(200, { ok: true, termsVersion: TERMS_VERSION });
+    return jsonResponse(200, {
+      ok: true,
+      accepted: true,
+      termsVersion: TERMS_VERSION,
+      acceptedAt
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Terms acknowledgment could not be saved.";
     return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
