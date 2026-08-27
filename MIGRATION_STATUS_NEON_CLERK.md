@@ -1,6 +1,6 @@
 # Neon And Clerk Transition Status
 
-Updated: August 25, 2026
+Updated: August 27, 2026
 
 ## Current Production System
 
@@ -46,6 +46,9 @@ Updated: August 25, 2026
 - The temporary access diagnostic and retired practitioner compatibility helper have been removed.
 - Production dependencies pass `npm audit` with zero known vulnerabilities, and the complete Next.js production build passes.
 - Security headers are emitted by Next.js itself so the Netlify Next.js runtime cannot omit them from rendered portal pages.
+- The approved 21-page Somatic Baseline Practitioner Therapeutic Addendum is installed only in the protected deployment resource directory and registered by idempotent Neon migration `0019_activate_somatic_baseline_practitioner_addendum.sql` as `DC-P01-SBP-TA01`.
+- Somatic Baseline addendum access requires the Somatic Baseline protocol entitlement plus an active practitioner-layer entitlement, practitioner role, and active practitioner profile. A DTC client entitlement alone does not expose the catalog record or PDF.
+- A direct production Neon query on August 27, 2026 confirmed `DC-P01-SBP-TA01` is active with the dedicated protected path, Somatic Baseline protocol binding, practitioner audience, and practitioner-only, downloadable, and printable flags set correctly.
 
 ## Production Validation
 
@@ -55,13 +58,15 @@ The following are ordinary product-specific confirmations rather than transition
 
 1. Save a practice-log entry when an account with Somatic Baseline access is available.
 2. When the first unrelated customer purchases, confirm the order appears in Founder Orders and the purchased product opens.
-3. Confirm any approved practitioner account receives its separate role, entitlement, and active practitioner profile before practitioner tools are used.
+3. After the protected-file and access-rule deployment is live, confirm an approved Somatic Baseline practitioner account can open `DC-P01-SBP-TA01` while a Somatic Baseline DTC client receives no catalog record and a direct download request is denied.
 
 ## Retirement Boundary
 
 Supabase is no longer used by production. Its Netlify variables are deleted, its function endpoint is retired, and both projects have been deleted. The repository's `supabase/` folder remains historical reference only and must not be run against Neon.
 
-## Non-Transition Content Follow-Up
+## Protected Practitioner Content
 
-- No separate Somatic Baseline Therapeutic Addendum PDF exists in the protected files. Its placeholder catalog record is inactive and should remain unpublished until a dedicated addendum file is approved.
+- `DC-P01-SBP-TA01` now has a dedicated approved PDF at `protected-resources/resources/somatic-baseline-practitioner-therapeutic-addendum.pdf`.
+- The PDF must not be copied to `public/resources`; `/resources/somatic-baseline-practitioner-therapeutic-addendum.pdf` is a logical catalog path that resolves through the authenticated Netlify protected-resource function.
+- Migration `0019_activate_somatic_baseline_practitioner_addendum.sql` is active in production. The protected-file and access-rule deployment plus the two-account role-and-entitlement smoke test remain the final live publication checks.
 

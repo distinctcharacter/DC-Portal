@@ -1,4 +1,4 @@
-﻿# Distinct Character Protocol Portal
+# Distinct Character Protocol Portal
 # Master Asset Register v0.1
 
 ## Register Purpose
@@ -75,13 +75,15 @@ Use this document as the source of truth while converting the PDF/DOCX ecosystem
 | DC-P01-SBP-TRK01 | Tactical Reset Practice Tracker | Tracker | Client | Portal Tool + PDF | Dashboard / Protocol | Yes | Yes | Review only | Source reviewed | Rebuild needed |
 | DC-P01-SBP-LOG01 | Daily Governance Log | Ledger | Client | Portal Tool + PDF | Dashboard / Protocol | Yes | Yes | Review only | Source reviewed | Rebuild needed |
 | DC-P01-SBP-LED01 | Relapse & Re-Entry Ledger | Ledger | Client | Portal Tool + PDF | Dashboard / Downloads | Yes | Yes | Practitioner review | Source reviewed | Rebuild needed |
-| DC-P01-SBP-TA01 | Therapeutic Addendum | Practitioner Resource | Practitioner | Portal Layer + PDF | Practitioner Layer | Yes | No | Yes | Source reviewed | Move to back |
+| DC-P01-SBP-TA01 | Somatic Baseline Practitioner Therapeutic Addendum | Practitioner Resource | Practitioner | Protected Portal Layer + PDF | Practitioner Layer | Yes | No | Yes | Version 1.0 approved | Deploy-ready via Neon migration 0019; never publish to DTC/public resources |
 
 ### DC-P01-SBP Source Replacement Note
 
 `SBP_Companion_Materials_Cover_Aligned_Revision_v0.4.docx` is the active controlled source as of 2026-06-02. It contains the resource and research companion, integration exercises, quick reference guide, and optional deepening paths. The evidence calibration table has been applied. Concise low-capacity adaptations and safety boundaries were preserved. A leftover workbook instruction and one unnecessary blank page were removed during alignment QA. The universal Distinct Character cover standard has been applied. The earlier SBP support PDFs are no longer production sources for the portal. They have been reclassified for the book club resource archive.
 
 `Somatic_Baseline_Protocol_Aligned_Revision_v0.1.docx` and `Somatic_Baseline_Protocol_Aligned_Revision_v0.1_Clean.pdf` are the active Somatic Baseline printable protocol controlled sources as of 2026-06-03. The updated uploaded source `Somatic_Baseline_Protocol_Complete_Edition.2.docx` was copied into editable intake, rebuilt with the universal cover standard, corrected rights/use front matter, a completed `A Letter from Azari Solenne`, protocol terminology cleanup, safety boundary preservation, therapeutic addendum placement at the back, render QA, and trailing blank-page removal.
+
+`Somatic_Baseline_Practitioner_Therapeutic_Addendum_v1.0_Portal_QA_Corrected.docx` and `somatic-baseline-practitioner-therapeutic-addendum.pdf` are the approved dedicated practitioner-layer sources as of 2026-08-27. The 21-page PDF passed full-page render inspection and is stored only under `protected-resources/resources`. Catalog activation is controlled by Neon migration `0019_activate_somatic_baseline_practitioner_addendum.sql`; access requires both Somatic Baseline protocol entitlement and active practitioner-layer access.
 
 ## Book Club Resource Archive
 
@@ -251,6 +253,7 @@ As of 2026-06-03, the active rebuilt printable protocol PDFs are: `Somatic_Basel
 
 | Asset ID | Asset Title | Category | Audience | Format | Portal Location | Printable | Dashboard | Advisor Layer | Version | Status |
 |---|---|---|---|---|---|---|---|---|---|---|
+| DC-P07-EIP-COURSE01 | Enterprise IP Mastermind Course Curriculum and Delivery Architecture | Course Architecture | Client / Advisor / Admin | DOCX + Markdown | Enterprise IP Mastermind | Yes | Yes | Yes | v0.1 | Created from Mastermind IP Outline & Notes; structural QA complete; visual render QA blocked by local LibreOffice export issue |
 | DC-P07-EIP-PC01 | Enterprise IP Mastermind Executive Field Manual | Printable Companion | Client | PDF | Downloads | Yes | No | No | Cover-aligned revision v0.1 | Client resource suite created; visual QA complete |
 | DC-P07-EIP-LTR01 | Enterprise IP Mastermind Personal Letter | Front Matter | Client | Protocol page + PDF | Protocol Start | Yes | No | No | Inserted in suite v0.1 | Complete |
 | DC-P07-EIP-READ01 | Commercial Readiness Assessment | Assessment | Client | Portal Tool + PDF | Enterprise IP | Yes | Yes | Advisor review | Built in suite v0.1 | PDF resource complete; future portal-native build |
@@ -332,4 +335,5 @@ For each new asset, assign:
 | Gate as practitioner | Move or mark as practitioner-only in portal |
 | Draft needed | New draft must be written |
 | Future | Preserve architecture but do not build for MVP |
+
 

@@ -30,7 +30,10 @@ const RESOURCE_ACCESS: Record<string, AccessRule> = {
   "nsg-digestion-sleep-movement-recovery.pdf": { authenticated: true },
   "somatic-baseline-companion.pdf": { protocolIds: ["DC-P01-SBP"] },
   "somatic-baseline-protocol.pdf": { protocolIds: ["DC-P01-SBP"] },
-  "somatic-baseline-practitioner-therapeutic-addendum.pdf": { practitionerOnly: true },
+  "somatic-baseline-practitioner-therapeutic-addendum.pdf": {
+    protocolIds: ["DC-P01-SBP"],
+    practitionerOnly: true
+  },
   "ios1-companion.pdf": { protocolIds: ["DC-P02-IOS"] },
   "ios1-protocol.pdf": { protocolIds: ["DC-P02-IOS"] },
   "mes1-companion.pdf": { protocolIds: ["DC-P02-MES"] },
@@ -121,11 +124,16 @@ export async function handler(event: FunctionEvent) {
       ? await userHasEffectiveProtocolAccess(user.id, user.emailNormalized, rule.protocolIds)
       : false;
 
+    const satisfiesPractitionerRequirement =
+      !rule.practitionerOnly || hasPractitionerLayerAccess;
+    const satisfiesProtocolRequirement = !rule.protocolIds || hasProtocolAccess;
+    const satisfiesAuthenticatedRequirement =
+      !rule.authenticated || hasActivePortalEntitlement;
     const allowed =
       isAdmin ||
-      Boolean(rule.authenticated && hasActivePortalEntitlement) ||
-      Boolean(rule.protocolIds && hasProtocolAccess) ||
-      Boolean(rule.practitionerOnly && hasPractitionerLayerAccess);
+      (satisfiesPractitionerRequirement &&
+        satisfiesProtocolRequirement &&
+        satisfiesAuthenticatedRequirement);
 
     if (!allowed) {
       return jsonResponse(403, { error: "This resource is not available for this account." });

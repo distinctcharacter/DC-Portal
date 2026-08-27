@@ -34,7 +34,17 @@ on conflict (id) do update set
   active = excluded.active,
   updated_at = now();
 
-select id, title, public_path, practitioner_only, active
+select
+  id,
+  title,
+  asset_type,
+  protocol_id,
+  public_path,
+  audience,
+  practitioner_only,
+  downloadable,
+  printable,
+  active
 from public.resource_assets
 where id = 'DC-P01-SBP-TA01';
 
