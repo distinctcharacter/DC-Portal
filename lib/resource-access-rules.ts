@@ -13,6 +13,10 @@ export const RESOURCE_ACCESS_RULES: Record<string, ResourceAccessRule> = {
   "nsg-digestion-sleep-movement-recovery.pdf": { authenticated: true },
   "somatic-baseline-companion.pdf": { protocolIds: ["DC-P01-SBP"] },
   "somatic-baseline-protocol.pdf": { protocolIds: ["DC-P01-SBP"] },
+  "somatic-baseline-practitioner-therapeutic-addendum.pdf": {
+    protocolIds: ["DC-P01-SBP"],
+    practitionerOnly: true
+  },
   "ios1-companion.pdf": { protocolIds: ["DC-P02-IOS"] },
   "ios1-protocol.pdf": { protocolIds: ["DC-P02-IOS"] },
   "mes1-companion.pdf": { protocolIds: ["DC-P02-MES"] },
@@ -54,11 +58,14 @@ export function canOpenResourceFromAccess({
   const rule = fileName ? RESOURCE_ACCESS_RULES[fileName] : null;
 
   if (!href || !rule) return false;
-  if (rule.practitionerOnly) return canAccessPractitionerLayer;
+  if (rule.practitionerOnly && !canAccessPractitionerLayer) return false;
   if (rule.authenticated) return isAuthenticated;
   if (rule.protocolIds?.length) {
     return rule.protocolIds.some((protocolId) => protocolIds.includes(protocolId));
   }
 
+  if (rule.practitionerOnly) return true;
+
   return status !== "Locked";
 }
+
