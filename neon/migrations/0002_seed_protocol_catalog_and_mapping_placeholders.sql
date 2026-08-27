@@ -72,7 +72,7 @@ values
   ('DC-R06-NSG-ESMR', 'Nervous System Governance: Eating, Sleep, Movement, Recovery', 'foundation_reference', null, '/resources/nsg-digestion-sleep-movement-recovery.pdf', 'client_practitioner', false, true, true),
   ('DC-P01-SBP-PC01', 'Somatic Baseline Printable Companion', 'protocol_pdf', 'DC-P01-SBP', '/resources/somatic-baseline-protocol.pdf', 'client_practitioner', false, true, true),
   ('DC-P01-SBP-CM01', 'Somatic Baseline Companion Materials', 'companion_pdf', 'DC-P01-SBP', '/resources/somatic-baseline-companion.pdf', 'client_practitioner', false, true, true),
-  ('DC-P01-SBP-TA01', 'Somatic Baseline Therapeutic Addendum', 'therapeutic_addendum', 'DC-P01-SBP', '/resources/somatic-baseline-protocol.pdf', 'practitioner', true, true, true),
+  ('DC-P01-SBP-TA01', 'Somatic Baseline Practitioner Therapeutic Addendum', 'therapeutic_addendum', 'DC-P01-SBP', '/resources/somatic-baseline-practitioner-therapeutic-addendum.pdf', 'practitioner', true, true, true),
   ('DC-P07-EIP-RS01', 'Enterprise IP Mastermind Resource Suite', 'commercial_incubation_resource', 'DC-P07-EIP', '/resources/enterprise-ip-mastermind-resource-suite.pdf', 'client_advisor', false, true, true),
   ('DC-P07-EIP-ADV01', 'Enterprise IP Mastermind Advisor Legal-Ops Guide', 'advisor_guide', 'DC-P07-EIP', '/resources/enterprise-ip-mastermind-advisor-guide.pdf', 'advisor_admin', true, true, true)
 on conflict (id) do update set
@@ -126,3 +126,4 @@ on conflict (stripe_product_id, stripe_price_id) do update set
   mapping_metadata = excluded.mapping_metadata,
   notes = excluded.notes,
   active = excluded.active;
+

@@ -30,6 +30,7 @@ const RESOURCE_ACCESS: Record<string, AccessRule> = {
   "nsg-digestion-sleep-movement-recovery.pdf": { authenticated: true },
   "somatic-baseline-companion.pdf": { protocolIds: ["DC-P01-SBP"] },
   "somatic-baseline-protocol.pdf": { protocolIds: ["DC-P01-SBP"] },
+  "somatic-baseline-practitioner-therapeutic-addendum.pdf": { practitionerOnly: true },
   "ios1-companion.pdf": { protocolIds: ["DC-P02-IOS"] },
   "ios1-protocol.pdf": { protocolIds: ["DC-P02-IOS"] },
   "mes1-companion.pdf": { protocolIds: ["DC-P02-MES"] },
@@ -153,3 +154,4 @@ export async function handler(event: FunctionEvent) {
     return jsonResponse(message === "Login required." ? 401 : 500, { error: message });
   }
 }
+

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AuthPanel } from "@/components/AuthPanel";
-import { SubstackSubscribeCard } from "@/components/SubstackSubscribeCard";
+import { BlogCard } from "@/components/BlogCard";
 
 export default function LoginPage() {
   return (
@@ -25,8 +25,9 @@ export default function LoginPage() {
 
       <div className="auth-stack">
         <AuthPanel />
-        <SubstackSubscribeCard />
+        <BlogCard />
       </div>
     </main>
   );
 }
+

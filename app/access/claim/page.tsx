@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AuthPanel } from "@/components/AuthPanel";
 import { PurchaseClaimStatus } from "@/components/PurchaseClaimStatus";
-import { SubstackSubscribeCard } from "@/components/SubstackSubscribeCard";
+import { BlogCard } from "@/components/BlogCard";
 
 export default function ClaimAccessPage() {
   return (
@@ -27,8 +27,9 @@ export default function ClaimAccessPage() {
       <div className="auth-stack">
         <PurchaseClaimStatus />
         <AuthPanel context="claim" />
-        <SubstackSubscribeCard />
+        <BlogCard />
       </div>
     </main>
   );
 }
+
